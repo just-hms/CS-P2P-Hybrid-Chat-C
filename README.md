@@ -1,5 +1,5 @@
 # progettoreti
-progetto di reti informaticje 2020
+progetto di reti informatiche 2020
 
 # general
 
@@ -7,7 +7,7 @@ progetto di reti informaticje 2020
 cmd --help // to show syntax
 ``` 
 
-# client
+# 🍐
 
 ```bash
 ./dev <porta>
@@ -37,7 +37,7 @@ resp ❌
 ```json
 {
     "type" : "signup",
-    "status" : 404
+    "status" : 404  // username already used
 }
 ```
 
@@ -48,6 +48,8 @@ events:
 ```bash
 in username password [port]
 ```
+call this every time server is down and you need it
+
 req => server
 ```json
 {
@@ -66,13 +68,13 @@ resp ❌
 ```json
 {
     "type" : "in",
-    "status" : 404
+    "status" : 404  // wrong username or password
 }
 ```
 
 events:
 - server : entry modified
-- client : call fake_out() to send old logout if server was taken down
+- 🍐 : call fake_out() to send old logout if (server was taken down && you logged out)
 
 ## hanging
 
@@ -96,7 +98,7 @@ resp ✔️
         {
             "username" : "username",
             "number" : 37,
-            "most_recent_timestamp" :  "10/12/2020 13:00:21"
+            "most_recent_timestamp" :  "10/12/2020 13:00:21:000"
         },
         {
 
@@ -104,13 +106,7 @@ resp ✔️
     ]
 }
 ```
-resp ❌
-```json
-{
-    "type" : "hanging",
-    "status" :  404
-}
-```
+
 events:
 - nothing
 
@@ -119,7 +115,7 @@ events:
 ```bash
 show username
 ```
-*maybe check pending messages number*
+*maybe hanging => show if pending from user > 1*
 
 req => server
 
@@ -147,61 +143,181 @@ resp ❌
 ```json
 {
     "type" : "show",
-    "status" :  404
+    "status" :  404 // username does not exist
 }
 ```
 
 events:
-- server : send_read_notification() to username or buffer if he's offline
+- server : notify()
 
 ## chat
 ```bash
 chat username
 ```
-no request
+
+- req => server to find out if there are buffered messages
+
+```json
+{
+    "type" : "chat",
+    "username" : "username"
+}
+
+resp ✔️
+```json
+{
+    "type" : "notify",
+    "receiver" : "username",
+    "most_recent_timestamp" : "10/12/2020 13:00:21:000"
+}
+```
+events:
+- client : refresh chat file
+- client : load chat
+
+resp ❌
+```json
+{
+    "type" : "chat",
+    "status" :  404 // username does not exist
+}
+```
+
+
+## chat commands
+
+### send_message 'message' + <kbd>Enter</kbd>
+
+req => 🍐 if up
+```json
+{
+    "type" : "send_message",
+    "content" : "content",
+    "timestamp" : "10/12/2020 13:00:21:000"
+}
+```
+req => server
+```json
+{
+    "type" : "send_message",
+    "content" : "content",
+    "timestamp" : "10/12/2020 13:00:21:000",
+    "receiver" : "username"
+}
+```
 
 events:
-- see pending_messages(username)
+- server : buffer_message()
 
-## pending_messages
+*** check for group messages
+
+### quit '\q' + <kbd>Enter</kbd>
+
+- close connection to 🍐s
+
+events:
+- other 🍐 need to close connection with you
+- if group is composed by 2 maybe call chat
+
+### ls_user '\u' + <kbd>Enter</kbd>
 
 req => server
 
 ```json
 {
-    // see if pending messages where read
-    
-    "type" : "chat",
-    "username" : "username"
+    "type" : "ls"
 }
 ```
 resp ✔️
 ```json
-{    
-    "type" : "chat",
-    "username" : "username",
-    "status" : 200
+{
+    "type" : "ls",
+    "status" : 200,
+    "usernames" : [
+        "username",
+        "username",
+        "username"
+    ]
 }
 ```
 resp ❌
 ```json
 {
-    "type" : "show",
-    "username" : "username",
+    "type" : "ls",
     "status" :  404
 }
 ```
 
+### add_user '\a username’ + <kbd>Enter</kbd>
+
+req => server
+
+```json
+{
+    "type" : "add_user",
+    "username" : "username"
+}
+```
+resp ✔️
+```json
+{
+    "type" : "add_user",
+    "status" : 200,
+    "port" : 8080
+}
+```
+resp ❌
+```json
+{
+    "type" : "add_user",
+    "status" :  404  // server error o 🍐 is on another group
+}
+```
 events:
-- 
+- 🍐 : new_user_is_added(username, port) => other 🍐s
+- 🍐 : send_users_in_chat_to_new_user(username) => new 🍐 
+
+## send_users_in_chat_to_new_user
+
+req => new 🍐
+
+```json
+{
+    "type" : "send_users_in_chat",
+    "users" : [
+        {
+            "username" : "username",
+            "port" : 3289 
+        },
+        {
+
+        }
+    ]
+}
+```
+
+## new_user_is_added
+
+req => all other 🍐s
+
+```json
+{
+    "type" : "new_user_is_added",
+    "username" : "username",
+    "port" : 4192
+}
+```
 
 ## share
 ```bash
 share file_name
 ```
+```json
 {
-
+    "type" : "share",
+    "content" : "encoded" //base-64-encoding
 }
+```
 ## out
 ```bash
 out
@@ -228,8 +344,8 @@ resp ❌
 ```
 
 events:
-- server : entry
-- client : buffer entry if the server is down
+- server : entry()
+- 🍐 : buffer entry if the server is down
  
 # server
 ```bash
@@ -258,8 +374,19 @@ close server
 - users need to save out timestamp
 
 
-## buffer messages
+## buffer_message
 
-## send_read_notification
+## notify
+
+🍐 : 
+- online => notify read to 🍐
+- offline => buffer 
+```json
+{
+    "type" : "notify",
+    "receiver" : "username",
+    "most_recent_timestamp" : "10/12/2020 13:00:21:000"
+}
+```
 
 ## entry
