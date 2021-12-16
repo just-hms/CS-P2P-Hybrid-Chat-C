@@ -9,9 +9,9 @@ cmd --help // to show syntax
 ``` 
 
 ## legend
-🍐 means active peer (related to the action)
-🍎 means passive peer (related to the action)
-🛠️ means server
+- 🍐 means sender peer (related to the action)
+- 🍎 means receiver peer (related to the action)
+- 🛠️ means server
 
 # 🍐
 
@@ -58,14 +58,16 @@ in username password [port]
 
 *call this every time 🛠️ is down and you need it*
 
-`req => 🛠️`
+`req => 🛠️` if (🛠️ was taken down && you logged out) add old_logout_timestamp
 
 ```json
 {
     "username" : "username",
-    "password" : "password" 
+    "password" : "password",
+    "old_logout_timestamp" : "NULL | 10/12/2020 13:00:21:000"
 }
 ```
+
 resp ✔️
 ```json
 {
@@ -75,7 +77,7 @@ resp ✔️
 ```
 ⚡
 - 🛠️ : save_entry
-- 🍐 : if (🛠️ was taken down && you logged out) call out(false) to send old logout 
+- 🍐 : trash old_logout
 
 resp ❌ (wrong username or password)
 ```json
@@ -146,7 +148,7 @@ resp ✔️
 }
 ```
 ⚡
-- 🛠️ : notify(🍎)
+- 🛠️ : notify(🍐, 🍎)
 
 resp ❌ (username does not exist)
 ```json
@@ -183,7 +185,7 @@ resp ✔️
 ⚡
 - 🍐 : refresh chat file
 - 🍐 : load chat
-- 🛠️ : forward to 🍎chat started with 🍐 ***
+- 🛠️ : forward to 🍎 chat started with 🍐 ***
 
 resp ❌ (username does not exist)
 ```json
@@ -210,7 +212,7 @@ resp ❌ (username does not exist)
 ⚡
 - 🍎 : receive and display
 
-`req => 🛠️`
+`req => 🛠️` if not up && if not group
 
 ```json
 {
@@ -223,7 +225,6 @@ resp ❌ (username does not exist)
 
 ⚡
 - 🛠️ : buffer_message
-
 
 ### quit '\q' + <kbd>Enter</kbd>
 
@@ -273,7 +274,7 @@ resp ✔️
     "port" : 8080
 }
 ```
-⚡
+⚡ (waiting cause you need to know 🍎 port)
 - 🍐 : new_user_is_added(username, port) => other 🍎s
 - 🍐 : send_users_in_chat_to_new_user(username) => new 🍎 
 
@@ -321,11 +322,12 @@ resp ❌ (username does not exists or 🍎 is on another group)
 - other group 🍎s starts connection to the new 🍎 
 
 ## share
+
 ```bash
 share file_name
 ```
 
-req => 🍎s (base-64-encoding)
+`req => 🍎s` (base-64-encoding)
 
 ```json
 {
@@ -339,13 +341,15 @@ req => 🍎s (base-64-encoding)
 ```bash
 out
 ```
+
 close server connection
 
 ⚡
-- 🛠️ : save_entry
 - 🍐 : buffer entry if the 🛠️ is down
+- 🛠️ : save_entry
  
 # 🛠️
+
 ```bash
 ./serv [port]
 ```
@@ -391,12 +395,22 @@ save
 
 ## notify
 
-🍎 
-- online => notify read to 🍎
-- offline => buffer 
+
+🍐 is online => notify that 🍎 has read to 🍐
+
 ```json
 {
     "type" : "notify",
+    "sender" : "username",
+    "receiver" : "username",
+    "most_recent_timestamp" : "10/12/2020 13:00:21:000"
+}
+```
+🍐 is offline => buffer 
+
+```json
+{
+    "sender" : "username",
     "receiver" : "username",
     "most_recent_timestamp" : "10/12/2020 13:00:21:000"
 }
@@ -410,7 +424,7 @@ save
 {
     "username" : "username",
     "type" : "in | out",
-    "timestamp" : "",
+    "timestamp" : "10/12/2020 13:00:21:000",
     "port" : 2349
 } 
 ```
