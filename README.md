@@ -1,4 +1,5 @@
 # progettoreti
+
 progetto di reti informatiche 2020
 
 # general
@@ -6,6 +7,11 @@ progetto di reti informatiche 2020
 ```bash
 cmd --help // to show syntax
 ``` 
+
+## legend
+🍐 means active peer (related to the action)
+🍎 means passive peer (related to the action)
+🛠️ means server
 
 # 🍐
 
@@ -18,7 +24,9 @@ cmd --help // to show syntax
 ```bash
 signup username password [port]
 ```
-req => server
+
+`req => 🛠️`
+
 ```json
 {
     "type" : "signup",
@@ -33,24 +41,25 @@ resp ✔️
     "status" : 200
 }
 ```
-resp ❌
+
+resp ❌ (username already used)
 ```json
 {
     "type" : "signup",
-    "status" : 404  // username already used
+    "status" : 404
 }
 ```
 
-events:
-- nothing
-
 ## in
+
 ```bash
 in username password [port]
 ```
-call this every time server is down and you need it
 
-req => server
+*call this every time 🛠️ is down and you need it*
+
+`req => 🛠️`
+
 ```json
 {
     "username" : "username",
@@ -64,17 +73,17 @@ resp ✔️
     "status" : 200
 }
 ```
-resp ❌
+⚡
+- 🛠️ : save_entry
+- 🍐 : if (🛠️ was taken down && you logged out) call out(false) to send old logout 
+
+resp ❌ (wrong username or password)
 ```json
 {
     "type" : "in",
-    "status" : 404  // wrong username or password
+    "status" : 404
 }
 ```
-
-events:
-- server : entry modified
-- 🍐 : call fake_out() to send old logout if (server was taken down && you logged out)
 
 ## hanging
 
@@ -82,7 +91,7 @@ events:
 hanging
 ```
 
-req => server
+`req => 🛠️`
 
 ```json
 {
@@ -107,17 +116,13 @@ resp ✔️
 }
 ```
 
-events:
-- nothing
-
 ## show
 
 ```bash
 show username
 ```
-*maybe hanging => show if pending from user > 1*
 
-req => server
+`req => 🛠️`
 
 ```json
 {
@@ -125,6 +130,7 @@ req => server
     "username" : "username"
 }
 ```
+
 resp ✔️
 ```json
 {
@@ -139,29 +145,31 @@ resp ✔️
     ]
 }
 ```
-resp ❌
+⚡
+- 🛠️ : notify(🍎)
+
+resp ❌ (username does not exist)
 ```json
 {
     "type" : "show",
-    "status" :  404 // username does not exist
+    "status" :  404
 }
 ```
 
-events:
-- server : notify()
-
 ## chat
+
 ```bash
 chat username
 ```
 
-- req => server to find out if there are buffered messages
+- `req => 🛠️` (to find out if there are buffered messages)
 
 ```json
 {
     "type" : "chat",
     "username" : "username"
 }
+```
 
 resp ✔️
 ```json
@@ -171,15 +179,17 @@ resp ✔️
     "most_recent_timestamp" : "10/12/2020 13:00:21:000"
 }
 ```
-events:
-- client : refresh chat file
-- client : load chat
 
-resp ❌
+⚡
+- 🍐 : refresh chat file
+- 🍐 : load chat
+- 🛠️ : forward to 🍎chat started with 🍐 ***
+
+resp ❌ (username does not exist)
 ```json
 {
     "type" : "chat",
-    "status" :  404 // username does not exist
+    "status" :  404
 }
 ```
 
@@ -188,7 +198,8 @@ resp ❌
 
 ### send_message 'message' + <kbd>Enter</kbd>
 
-req => 🍐 if up
+`req => 🍎` if up || `req => 🍎s` if group
+
 ```json
 {
     "type" : "send_message",
@@ -196,7 +207,11 @@ req => 🍐 if up
     "timestamp" : "10/12/2020 13:00:21:000"
 }
 ```
-req => server
+⚡
+- 🍎 : receive and display
+
+`req => 🛠️`
+
 ```json
 {
     "type" : "send_message",
@@ -206,22 +221,21 @@ req => server
 }
 ```
 
-events:
-- server : buffer_message()
+⚡
+- 🛠️ : buffer_message
 
-*** check for group messages
 
 ### quit '\q' + <kbd>Enter</kbd>
 
-- close connection to 🍐s
+- close connection to 🍎s
 
-events:
-- other 🍐 need to close connection with you
-- if group is composed by 2 maybe call chat
+⚡
+- other 🍎 need to close connection with 🍐
+- if group is composed by 2 maybe call chat ***
 
 ### ls_user '\u' + <kbd>Enter</kbd>
 
-req => server
+`req => 🛠️`
 
 ```json
 {
@@ -240,17 +254,10 @@ resp ✔️
     ]
 }
 ```
-resp ❌
-```json
-{
-    "type" : "ls",
-    "status" :  404
-}
-```
 
 ### add_user '\a username’ + <kbd>Enter</kbd>
 
-req => server
+`req => 🛠️`
 
 ```json
 {
@@ -266,20 +273,21 @@ resp ✔️
     "port" : 8080
 }
 ```
-resp ❌
+⚡
+- 🍐 : new_user_is_added(username, port) => other 🍎s
+- 🍐 : send_users_in_chat_to_new_user(username) => new 🍎 
+
+resp ❌ (username does not exists or 🍎 is on another group)
 ```json
 {
     "type" : "add_user",
-    "status" :  404  // server error o 🍐 is on another group
+    "status" :  404
 }
 ```
-events:
-- 🍐 : new_user_is_added(username, port) => other 🍐s
-- 🍐 : send_users_in_chat_to_new_user(username) => new 🍐 
 
 ## send_users_in_chat_to_new_user
 
-req => new 🍐
+`req => new 🍎`
 
 ```json
 {
@@ -295,10 +303,12 @@ req => new 🍐
     ]
 }
 ```
+⚡
+- new 🍎 adds starts connection to other group 🍎s
 
 ## new_user_is_added
 
-req => all other 🍐s
+`req => all other 🍎s`
 
 ```json
 {
@@ -308,46 +318,34 @@ req => all other 🍐s
 }
 ```
 
+- other group 🍎s starts connection to the new 🍎 
+
 ## share
 ```bash
 share file_name
 ```
+
+req => 🍎s (base-64-encoding)
+
 ```json
 {
     "type" : "share",
-    "content" : "encoded" //base-64-encoding
+    "content" : "encoded"
 }
 ```
+
 ## out
+
 ```bash
 out
 ```
+close server connection
 
-```json
-{
-    "type" : "out"
-}
-```
-resp ✔️
-```json
-{
-    "type" : "out",
-    "status" : 200
-}
-```
-resp ❌
-```json
-{
-    "type" : "out",
-    "status" :  404
-}
-```
-
-events:
-- server : entry()
-- 🍐 : buffer entry if the server is down
+⚡
+- 🛠️ : save_entry
+- 🍐 : buffer entry if the 🛠️ is down
  
-# server
+# 🛠️
 ```bash
 ./serv [port]
 ```
@@ -357,29 +355,44 @@ events:
 commands description
 
 ## list
+
 list users
+
 ```bash
-“username*timestamp*porta”
-“username*timestamp*porta”
-“username*timestamp*porta”
-“username*timestamp*porta”
+username * timestamp * porta
+username * timestamp * porta
+username * timestamp * porta
+username * timestamp * porta
 ```
 
 ## esc
 
-close server
+close 🛠️
 
 - no more logins
 - no more signup
-- users need to save out timestamp
+- users need to save log out timestamp
 
+⚡
+- all 🍎s save that 🛠️ is offline
 
 ## buffer_message
 
+save
+
+```json
+{   
+    "sender" : "username",
+    "receiver" : "username",
+    "content" : "content",
+    "timestamp" : "10/12/2020 13:00:21:000",
+}
+```
+
 ## notify
 
-🍐 : 
-- online => notify read to 🍐
+🍎 
+- online => notify read to 🍎
 - offline => buffer 
 ```json
 {
@@ -389,4 +402,15 @@ close server
 }
 ```
 
-## entry
+## save_entry
+
+save
+
+```json
+{
+    "username" : "username",
+    "type" : "in | out",
+    "timestamp" : "",
+    "port" : 2349
+} 
+```
