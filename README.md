@@ -129,7 +129,7 @@ show username
 ```json
 {
     "type" : "show",
-    "username" : "username"
+    "sender" : "username"
 }
 ```
 
@@ -185,7 +185,7 @@ resp ✔️
 ⚡
 - 🍐 : refresh chat file
 - 🍐 : load chat
-- 🛠️ : forward to 🍎 chat started with 🍐 ***
+- 🛠️ : forward to 🍎 chat started with 🍐 ???
 
 resp ❌ (username does not exist)
 ```json
@@ -232,7 +232,7 @@ resp ❌ (username does not exist)
 
 ⚡
 - other 🍎 need to close connection with 🍐
-- if group is composed by 2 maybe call chat ***
+- if group is composed by 2 maybe call chat ???
 
 ### ls_user '\u' + <kbd>Enter</kbd>
 
@@ -396,17 +396,19 @@ save
 ## notify
 
 
-🍐 is online => notify that 🍎 has read to 🍐
+`🍐 is online => notify that 🍎 has read to 🍐`
 
 ```json
 {
     "type" : "notify",
-    "sender" : "username",
     "receiver" : "username",
     "most_recent_timestamp" : "10/12/2020 13:00:21:000"
 }
 ```
-🍐 is offline => buffer 
+⚡
+- 🍐 : refresh chat file with **
+
+`🍐 is offline => buffer` 
 
 ```json
 {
