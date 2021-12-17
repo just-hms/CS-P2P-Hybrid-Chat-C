@@ -10,8 +10,8 @@ cmd --help // to show syntax
 
 ## legend
 - 🍐 means sender peer (related to the action)
-- 🍎 means receiver peer (related to the action)
-- 🛠️ means server
+- 🍊 means receiver peer (related to the action)
+- 🌳 means server
 
 # 🍐
 
@@ -25,7 +25,7 @@ cmd --help // to show syntax
 signup username password [port]
 ```
 
-`req => 🛠️`
+`req => 🌳`
 
 ```json
 {
@@ -56,9 +56,9 @@ resp ❌ (username already used)
 in username password [port]
 ```
 
-*call this every time 🛠️ is down and you need it*
+*call this every time 🌳 is down and you need it*
 
-`req => 🛠️` if (🛠️ was taken down && you logged out) add old_logout_timestamp
+`req => 🌳` if (🌳 was taken down && you logged out) add old_logout_timestamp
 
 ```json
 {
@@ -76,7 +76,7 @@ resp ✔️
 }
 ```
 ⚡
-- 🛠️ : save_entry
+- 🌳 : save_entry
 - 🍐 : trash old_logout
 
 resp ❌ (wrong username or password)
@@ -93,7 +93,7 @@ resp ❌ (wrong username or password)
 hanging
 ```
 
-`req => 🛠️`
+`req => 🌳`
 
 ```json
 {
@@ -124,7 +124,7 @@ resp ✔️
 show username
 ```
 
-`req => 🛠️`
+`req => 🌳`
 
 ```json
 {
@@ -148,7 +148,7 @@ resp ✔️
 }
 ```
 ⚡
-- 🛠️ : notify(🍐, 🍎)
+- 🌳 : notify(🍐, 🍊)
 
 resp ❌ (username does not exist)
 ```json
@@ -164,7 +164,7 @@ resp ❌ (username does not exist)
 chat username
 ```
 
-- `req => 🛠️` (to find out if there are buffered messages)
+- `req => 🌳` (to find out if there are buffered messages)
 
 ```json
 {
@@ -185,7 +185,7 @@ resp ✔️
 ⚡
 - 🍐 : refresh chat file
 - 🍐 : load chat
-- 🛠️ : forward to 🍎 chat started with 🍐 ???
+- 🌳 : forward to 🍊 chat started with 🍐 ???
 
 resp ❌ (username does not exist)
 ```json
@@ -200,7 +200,7 @@ resp ❌ (username does not exist)
 
 ### send_message 'message' + <kbd>Enter</kbd>
 
-`req => 🍎` if up || `req => 🍎s` if group
+`req => 🍊` if up || `req => 🍊s` if group
 
 ```json
 {
@@ -210,9 +210,9 @@ resp ❌ (username does not exist)
 }
 ```
 ⚡
-- 🍎 : receive and display
+- 🍊 : receive and display
 
-`req => 🛠️` if not up && if not group
+`req => 🌳` if not up && if not group
 
 ```json
 {
@@ -224,19 +224,19 @@ resp ❌ (username does not exist)
 ```
 
 ⚡
-- 🛠️ : buffer_message
+- 🌳 : buffer_message
 
 ### quit '\q' + <kbd>Enter</kbd>
 
-- close connection to 🍎s
+- close connection to 🍊s
 
 ⚡
-- other 🍎 need to close connection with 🍐
+- other 🍊 need to close connection with 🍐
 - if group is composed by 2 maybe call chat ???
 
 ### ls_user '\u' + <kbd>Enter</kbd>
 
-`req => 🛠️`
+`req => 🌳`
 
 ```json
 {
@@ -258,7 +258,7 @@ resp ✔️
 
 ### add_user '\a username’ + <kbd>Enter</kbd>
 
-`req => 🛠️`
+`req => 🌳`
 
 ```json
 {
@@ -274,11 +274,11 @@ resp ✔️
     "port" : 8080
 }
 ```
-⚡ (waiting cause you need to know 🍎 port)
-- 🍐 : new_user_is_added(username, port) => other 🍎s
-- 🍐 : send_users_in_chat_to_new_user(username) => new 🍎 
+⚡ (waiting cause you need to know 🍊 port)
+- 🍐 : new_user_is_added(username, port) => other 🍊s
+- 🍐 : send_users_in_chat_to_new_user(username) => new 🍊 
 
-resp ❌ (username does not exists or 🍎 is on another group)
+resp ❌ (username does not exists or 🍊 is on another group)
 ```json
 {
     "type" : "add_user",
@@ -288,7 +288,7 @@ resp ❌ (username does not exists or 🍎 is on another group)
 
 ## send_users_in_chat_to_new_user
 
-`req => new 🍎`
+`req => new 🍊`
 
 ```json
 {
@@ -305,11 +305,11 @@ resp ❌ (username does not exists or 🍎 is on another group)
 }
 ```
 ⚡
-- new 🍎 adds starts connection to other group 🍎s
+- new 🍊 adds starts connection to other group 🍊s
 
 ## new_user_is_added
 
-`req => all other 🍎s`
+`req => all other 🍊s`
 
 ```json
 {
@@ -319,7 +319,7 @@ resp ❌ (username does not exists or 🍎 is on another group)
 }
 ```
 
-- other group 🍎s starts connection to the new 🍎 
+- other group 🍊s starts connection to the new 🍊 
 
 ## share
 
@@ -327,7 +327,7 @@ resp ❌ (username does not exists or 🍎 is on another group)
 share file_name
 ```
 
-`req => 🍎s` (base-64-encoding)
+`req => 🍊s` (base-64-encoding)
 
 ```json
 {
@@ -345,10 +345,10 @@ out
 close server connection
 
 ⚡
-- 🍐 : buffer entry if the 🛠️ is down
-- 🛠️ : save_entry
+- 🍐 : buffer entry if the 🌳 is down
+- 🌳 : save_entry
  
-# 🛠️
+# 🌳
 
 ```bash
 ./serv [port]
@@ -371,14 +371,14 @@ username * timestamp * porta
 
 ## esc
 
-close 🛠️
+close 🌳
 
 - no more logins
 - no more signup
 - users need to save log out timestamp
 
 ⚡
-- all 🍎s save that 🛠️ is offline
+- all 🍊s save that 🌳 is offline
 
 ## buffer_message
 
@@ -396,7 +396,7 @@ save
 ## notify
 
 
-`🍐 is online => notify that 🍎 has read to 🍐`
+`🍐 is online => notify that 🍊 has read to 🍐`
 
 ```json
 {
