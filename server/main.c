@@ -1,6 +1,8 @@
 #include <stdio.h>
-#include "./../lib/client.c"
+#include "./../lib/server.c"
+
+
 
 int main(){
-    kek();
+    server();
 }

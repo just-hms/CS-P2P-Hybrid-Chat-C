@@ -8,14 +8,12 @@
 #include <unistd.h>
 #include <time.h>
 
-#define BUF_LEN 1024
-#define REQUEST_LEN 4
-#define MAX_MESSAGE_LENGTH 10
+#include "utils.h"
 
-// TODO check memory free
-
+// DONE
 int build_listener(int ip, int port){
-    int listener, addrlen;
+
+    int listener, addrlen, ret;
     
     struct sockaddr_in my_addr;
     
@@ -38,6 +36,7 @@ int build_listener(int ip, int port){
     return listener;
 }
 
+// TODO maybe add an handler after this 
 void accept_new_connection(fd_set * master, int * fdmax, int listener){
     
     struct sockaddr_in cl_addr;
@@ -53,67 +52,27 @@ void accept_new_connection(fd_set * master, int * fdmax, int listener){
     }
 }
 
-char * receive_message(int i){
-    
-    char * buffer;
-    int message_length;
-
-    buffer = malloc(BUF_LEN * sizeof(char));
-
-    recv(i, (void*)buffer, BUF_LEN, 0);
-
-    // FIXME
-    message_length = (int) *buffer;
-
-    if(message_length > MAX_MESSAGE_LENGTH)
-        return -1;
-    
-    recv(i, (void*)buffer, message_length, 0);
-    
-    return buffer;
-
-}
-
-int send_message(int i, char * message){
-    
-    int len, ret;
-    
-    len = strnlen(message, BUF_LEN) + 1;
-    
-    if(len >= BUF_LEN)
-        return -1;
-    
-    sprintf(buffer, "%d", len);
-
-    send(i, (void*) buffer, strlen(buffer) + 1, 0);
-
-    // copy the message in the buffer
-    strcpy(buffer, message);
-
-    buffer[len] = '\0';
-
-    // send message
-    ret = send(i, (void*) buffer, strlen(buffer) + 1, 0);
-    
-    return ret;
-}
-
-void server(int ip, int port, void(*__input)(), char* (*__read)(char*), int(*__answer)(char*)){
+void server(int ip, int port, void(*__input)(), char* (*__handle_message)(char*)){
     
     int ret, listener, i, fdmax; 
-    fd_set master, read_fds;                
+    fd_set master, read_fds;
+    
+    char * answer;
+    
+    char buffer[BUF_LEN];                
     
     listener = build_listener(ip, port);
     
     FD_ZERO(&master);
     FD_ZERO(&read_fds);
-    FD_SET(listener, &master);
     FD_SET(0, &read_fds); 
+    FD_SET(listener, &master);
     
     fdmax = listener;          
     
     while(1){        
         
+        // available sd starts == master
         read_fds = master;     
         
         // (,,,,timeout : NULL)
@@ -125,38 +84,33 @@ void server(int ip, int port, void(*__input)(), char* (*__read)(char*), int(*__a
                 continue;
         
             if(i == listener) { 
-                
-                // TODO something to handle new connection
                 accept_new_connection(&master, &fdmax, listener);
                 continue;
             } 
 
-            // FIXME
-            
             if(i == 0){
                 __input();
             }
 
-            message = receive_message(i);
+            receive_message(i, buffer);
             
-            params = __read(message);
-
-            answer = __answer(params); 
+            answer = __handle_message(buffer);
 
             ret = send_message(i, answer); 
             
+            // FIXME
+            free(answer);
+            answer = NULL;
+
             if(ret < 0){
                 perror("Errore in fase di comunicazione con il client: \n");
             }
 
-            // TODO
-            // forse anche in altri casi, quando qualcuno chiama quit
-            // trovare un modo carino di metterlo in asnwer
+            // TODO answer needs to control closed connection in some ways
+            // TODO close connection with client onerror
 
             if(ret != 0)
                 continue;
-
-            // TODO something to handle closed connection
 
             close(i);
             FD_CLR(i, &master);

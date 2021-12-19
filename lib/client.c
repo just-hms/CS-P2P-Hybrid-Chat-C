@@ -7,21 +7,18 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define BUFFER_SIZE     1024
-#define RESPONSE_LEN    9
+#include "utils.h"
 
-void client(char* server_ip, int server_port, char* (*__request)(), void (*__response)(char* )){
+void client(char* server_ip, int server_port, char* (*__make_request)(), void (*__handle_response)(char* )){
     
     int ret, sd;
     struct sockaddr_in srv_addr;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUF_LEN];
     char * request;
     
-    /* Creazione socket */
     sd = socket(AF_INET,SOCK_STREAM,0);
     
-    /* Creazione indirizzo del server */
-    memset(&srv_addr, 0, sizeof(srv_addr)); // Pulizia 
+    memset(&srv_addr, 0, sizeof(srv_addr));
     srv_addr.sin_family = AF_INET;
     srv_addr.sin_port = server_port;
     inet_pton(AF_INET, server_ip, &srv_addr.sin_addr);
@@ -35,30 +32,24 @@ void client(char* server_ip, int server_port, char* (*__request)(), void (*__res
 
     while(1){
 
-        // TODO build something with a dimension
-        request = __request(); 
-        
-        // TODO copy request in the buffer or something similiar
+        request = __make_request(sd);
 
-        ret = send(sd, request, strlen(request), 0);
+        ret = send_message(request);
+
         if(ret < 0){
             perror("Errore in fase di invio comando: \n");
             exit(-1);
         }
         
-        // Attendo risposta
-        ret = recv(sd, (void*)buffer, RESPONSE_LEN, 0);
-        
-        if(ret < 0){
+        receive_message(sd, buffer);
+
+        if(buffer == NULL){
             perror("Errore in fase di ricezione: \n");
-            exit(-1);
+            exit(1);
         }
 
-        __response(buffer);
+        __handle_response(buffer);
     }
-    close(sd);
-}
 
-void kek(){
-    printf("keke");
+    close(sd);
 }
