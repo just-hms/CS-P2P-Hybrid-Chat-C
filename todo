@@ -1,4 +1,4 @@
+[] make connect work
+[] add --verbose or --log to both server and client exe
 [] check memory free
 [] fix send & receive message
-[] use server and client to send simple messages
-[] something

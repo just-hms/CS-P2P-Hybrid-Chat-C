@@ -1,20 +1,19 @@
-#include "./../lib/utils.h"
-#include <string.h>
+#include "./../lib/client.c"
 
 int main(int argc, char* argv[]){
-    
-    char command[1024];
 
-    while(1){
-        
-        scanf("%1024s", command);
-        
-            
-        }
+    int client_id;
 
+    client_id = client("127.0.0.1",4040);
+
+    if(client_id < 0){
+        perror("errore di connessione al socket\n");
+        exit(1);
     }
-}
-
-int signup(char * username, char * password, int port){
-
+    
+    request(
+        client_id, 
+        "kek", 
+        0
+    );
 }

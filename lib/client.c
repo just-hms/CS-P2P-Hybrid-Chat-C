@@ -1,15 +1,7 @@
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #include "utils.h"
+#include "connection.h"
 
-void client(char* server_ip, int server_port, char* (*__make_request)(), void (*__handle_response)(char* )){
+int client(char* server_ip, int server_port){
     
     int ret, sd;
     struct sockaddr_in srv_addr;
@@ -25,31 +17,27 @@ void client(char* server_ip, int server_port, char* (*__make_request)(), void (*
     
     ret = connect(sd, (struct sockaddr*)&srv_addr, sizeof(srv_addr));
 
-    if(ret < 0){
-        perror("Errore in fase di connessione: \n");
-        exit(-1);
-    }
+    if(ret < 0)
+        return -1;
+    
+    add_connection(sd, server_port);
 
-    while(1){
+    return sd;
+}
 
-        request = __make_request(sd);
+char * request(int sd, char * request, int need_response){
+    int ret;
+    char * buffer;
 
-        ret = send_message(request);
+    ret = send_message(sd, request);
 
-        if(ret < 0){
-            perror("Errore in fase di invio comando: \n");
-            exit(-1);
-        }
+    if(need_response){
+        
+        buffer = (char *) malloc(BUF_LEN);
         
         receive_message(sd, buffer);
-
-        if(buffer == NULL){
-            perror("Errore in fase di ricezione: \n");
-            exit(1);
-        }
-
-        __handle_response(buffer);
+        return buffer;
     }
-
-    close(sd);
+    
+    return NULL;
 }
