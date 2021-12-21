@@ -16,3 +16,4 @@
 
 int receive_message(int, char *);
 int send_message(int, char*);
+int starts_with(char *, char *);

@@ -13,8 +13,8 @@ void add_connection(int sd, int port){
     new_connection->sd = sd;
 
     if(head == NULL){
-        head->next = NULL;
         head = new_connection;
+        head->next = NULL;
         count++;
         return;
     }

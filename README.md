@@ -430,3 +430,31 @@ save
     "port" : 2349
 } 
 ```
+
+
+
+server 
+
+client 1 => server
+client 2 => server
+
+peer 1
+{
+    client 1.2 => server 2, 
+    client 1.3 => server 3,
+    server 1
+}
+
+peer 2
+{
+    client 2.1 => server 1, 
+    client 2.3 => server 3,
+    server 2
+}
+
+peer 3
+{
+    client 3.1 => server 1, 
+    client 3.2 => server 1,
+    server 3
+}

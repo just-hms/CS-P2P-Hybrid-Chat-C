@@ -1,5 +1,7 @@
 #include "utils.h"
 
+int verbose;
+
 int build_listener(int port){
 
     int listener, addrlen, ret;
@@ -33,21 +35,24 @@ void accept_new_connection(fd_set * master, int * fdmax, int listener){
     
     newfd = accept(listener, (struct sockaddr *)&cl_addr, &addrlen);
     
-    
     FD_SET(newfd, master); 
     
+    if(verbose)
+        printf("new fd := %d\n", newfd);
+
     if(newfd > *fdmax){ 
         *fdmax = newfd; 
     }
 }
 
 /* TODO maybe also an extern function*/
-void close_connection(int sd, fd_set * master){
-    close(sd);
+void close_connection(int sd, fd_set * master, int corrupted){
+    if(!corrupted)
+        close(sd);
     FD_CLR(sd, master);
 }
 
-void server(int port, void(*__input)(char *), char* (*__get_request)(char*)){
+void server(int port, void(*__input)(char *), char* (*__get_request)(char*), int verbose_param){
     
     int ret, listener, i, fdmax; 
     fd_set master, read_fds;
@@ -55,14 +60,20 @@ void server(int port, void(*__input)(char *), char* (*__get_request)(char*)){
     char * answer;
     char buffer[BUF_LEN];
 
+    verbose = verbose_param;
+
     listener = build_listener(port);
     
     if(listener < 0){
-        perror("Bind non riuscita\n");
+        if(verbose) 
+            printf("error on binding\n");
         exit(1);
     }
 
+    // list of all sockets 
     FD_ZERO(&master);
+
+    // list of active sockets
     FD_ZERO(&read_fds);
 
     FD_SET(listener, &master);
@@ -83,7 +94,8 @@ void server(int port, void(*__input)(char *), char* (*__get_request)(char*)){
                 continue;
         
             if(i == listener) {
-                printf("new connection asked\n");
+                if(verbose)
+                    printf("new connection asked\n");
                 accept_new_connection(&master, &fdmax, listener);
                 continue;
             } 
@@ -91,51 +103,61 @@ void server(int port, void(*__input)(char *), char* (*__get_request)(char*)){
             memset(buffer, 0, BUF_LEN);                                
             
             if(i == STDIN_FILENO){
-
-                printf("new input arrived\n");
+                if(verbose)
+                    printf("new input arrived\n");
                 ret = read(STDIN_FILENO, buffer, BUF_LEN);
                 
                 if(ret < 0){
-                    perror("Errore durante la scrittura: \n");
+                    if(verbose)
+                        printf("error while typing\n");
                     exit(1);
                 }
 
                 buffer[BUF_LEN - 1] = '\0';            
 
                 __input(buffer);
-
+                
                 continue;
             }
-
-            printf("new message received\n");
 
             ret = receive_message(i, buffer);
 
             if(ret < 0){
-                perror("Errore in fase di comunicazione con il client: \n");
+                if(verbose)
+                    printf("[%d] connection error while receiving message\n", i);
                 exit(1);
             }
+            
             if(ret == 0){
-                close_connection(i, &master);
+                if(verbose)
+                    printf("[%d] closed connection while receiving message\n", i);
+                close_connection(i, &master, 1);
                 continue;
             }
 
+            if(verbose)
+                printf("[%d] new message received := %s\n", i, buffer);
+
             answer = __get_request(buffer);
 
+            if(answer == NULL)
+                continue;
+
             ret = send_message(i, answer); 
-            
             free(answer);
-            answer = NULL;
 
             if(ret < 0){
-                perror("Errore in fase di comunicazione con il client: \n");
-                exit(1);
+                if(verbose)
+                    printf("[%d] connection error while sending message\n", i);
+                close_connection(i, &master, 0);
+                continue;
             }
 
             if(ret != 0)
                 continue;
             
-            close_connection(i, &master);
+            printf("[%d] closed connection while sending message\n", i);
+            close_connection(i, &master, 0);
 
             /*
              * TODO answer needs to control closed connection in some ways

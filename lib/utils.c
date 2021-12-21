@@ -34,3 +34,15 @@ int send_message(int i, char * message){
     
     return ret;
 }
+
+// FIX ME strlen not secure
+
+int starts_with(char * first, char * second){
+    int length_first = strlen(first);
+    int length_second = strlen(second);
+
+    if(length_first > length_second)
+        return strncmp(first, second, length_first) == 0;
+    
+    return strncmp(first, second, length_second) == 0;
+}
