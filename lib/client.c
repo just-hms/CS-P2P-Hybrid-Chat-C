@@ -1,7 +1,7 @@
 #include "utils.h"
 #include "connection.h"
 
-int client(char* server_ip, int server_port){
+int client(char* server_ip, int server_port, char * username){
     
     int ret, sd;
     struct sockaddr_in srv_addr;

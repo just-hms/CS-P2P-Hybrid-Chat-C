@@ -4,7 +4,7 @@ int verbose;
 
 int build_listener(int port){
 
-    int listener, addrlen, ret;
+    int listener, ret;
     
     struct sockaddr_in my_addr;
     
@@ -70,10 +70,7 @@ void server(int port, void(*__input)(char *), char* (*__get_request)(char*), int
         exit(1);
     }
 
-    // list of all sockets 
     FD_ZERO(&master);
-
-    // list of active sockets
     FD_ZERO(&read_fds);
 
     FD_SET(listener, &master);

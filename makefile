@@ -1,19 +1,13 @@
 CC=gcc
-CFLAGS=-ansi
-SOURCES=./lib/utils.c  ./lib/connection.c ./lib/server.c ./lib/client.c  
+CFLAGS=-ansi -Wall
+SOURCES=./lib/utils.c ./lib/connection.c  
 
+build: 			build_server build_client
 
-run: 	build
-		./server/main.c
-		./client/main.c
+build_server: 	$(SOURCES)
+				$(CC) -o ./server/server ./server/main.c $(SOURCES) $(CFLAGS)
 
-build: 	my
-		server
-
-server: $(SOURCES)
-        $(CC) -o server ./server/main.c $(SOURCES) $(CFLAGS)
-
-client: $(SOURCES)
-        $(CC) -o client ./client/main.c $(SOURCES) $(CFLAGS)
+build_client: 	$(SOURCES)
+				$(CC) -o ./client/client ./client/main.c $(SOURCES) $(CFLAGS)
 
 

@@ -1,10 +1,10 @@
 #include "./../lib/server.c"
 
 /*
-Digita un comando:
-1) help --> mostra i dettagli dei comandi
-2) list --> mostra un elenco degli utenti connessi
-3) esc --> chiude il
+    Digita un comando:
+    1) help --> mostra i dettagli dei comandi
+    2) list --> mostra un elenco degli utenti connessi
+    3) esc --> chiude il
 */
 
 void input(char * input){
@@ -13,11 +13,11 @@ void input(char * input){
         exit(0);
 
     if(strcmp(input, "list") == 0){
-        // list users
+        /* list users */
         return;
     }
     if(strcmp(input, "help") == 0){
-        // show commands details
+        /* show commands details */
     }
 
 }
