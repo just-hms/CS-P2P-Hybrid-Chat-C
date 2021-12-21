@@ -14,5 +14,5 @@
 
 #define BUF_LEN 1024
 
-void receive_message(int, char *);
+int receive_message(int, char *);
 int send_message(int, char*);

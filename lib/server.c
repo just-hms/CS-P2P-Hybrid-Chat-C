@@ -30,7 +30,9 @@ void accept_new_connection(fd_set * master, int * fdmax, int listener){
     int newfd, addrlen;
 
     addrlen = sizeof(cl_addr);
+    
     newfd = accept(listener, (struct sockaddr *)&cl_addr, &addrlen);
+    
     
     FD_SET(newfd, master); 
     
@@ -39,12 +41,17 @@ void accept_new_connection(fd_set * master, int * fdmax, int listener){
     }
 }
 
+/* TODO maybe also an extern function*/
+void close_connection(int sd, fd_set * master){
+    close(sd);
+    FD_CLR(sd, master);
+}
+
 void server(int port, void(*__input)(char *), char* (*__get_request)(char*)){
     
     int ret, listener, i, fdmax; 
     fd_set master, read_fds;
-    
-    
+
     char * answer;
     char buffer[BUF_LEN];
 
@@ -75,14 +82,17 @@ void server(int port, void(*__input)(char *), char* (*__get_request)(char*)){
             if(!FD_ISSET(i, &read_fds))
                 continue;
         
-            if(i == listener) { 
+            if(i == listener) {
+                printf("new connection asked\n");
                 accept_new_connection(&master, &fdmax, listener);
                 continue;
             } 
 
+            memset(buffer, 0, BUF_LEN);                                
+            
             if(i == STDIN_FILENO){
 
-                memset(buffer, 0, BUF_LEN);                                
+                printf("new input arrived\n");
                 ret = read(STDIN_FILENO, buffer, BUF_LEN);
                 
                 if(ret < 0){
@@ -97,13 +107,23 @@ void server(int port, void(*__input)(char *), char* (*__get_request)(char*)){
                 continue;
             }
 
-            receive_message(i, buffer);
-            
+            printf("new message received\n");
+
+            ret = receive_message(i, buffer);
+
+            if(ret < 0){
+                perror("Errore in fase di comunicazione con il client: \n");
+                exit(1);
+            }
+            if(ret == 0){
+                close_connection(i, &master);
+                continue;
+            }
+
             answer = __get_request(buffer);
 
             ret = send_message(i, answer); 
             
-            /* FIXME */
             free(answer);
             answer = NULL;
 
@@ -112,16 +132,15 @@ void server(int port, void(*__input)(char *), char* (*__get_request)(char*)){
                 exit(1);
             }
 
+            if(ret != 0)
+                continue;
+            
+            close_connection(i, &master);
+
             /*
              * TODO answer needs to control closed connection in some ways
              * TODO close connection with client onerror 
             */
-
-            if(ret != 0)
-                continue;
-
-            close(i);
-            FD_CLR(i, &master);
 
         }
     }

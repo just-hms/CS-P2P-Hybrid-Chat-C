@@ -1,4 +1,6 @@
-[] make connect work
+[] make connect work, the server accepts the connection but receives 0 and closes it
+[] memset 0 to malloc buffers
 [] add --verbose or --log to both server and client exe
 [] check memory free
 [] fix send & receive message
+[] check data types when sending them

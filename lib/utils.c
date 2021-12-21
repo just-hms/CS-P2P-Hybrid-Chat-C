@@ -1,19 +1,19 @@
 
 #include "utils.h"
 
-void receive_message(int i, char * buffer){
-    
+int receive_message(int i, char * buffer){
+
     int ret;
 
     ret = recv(i, (void*)buffer, BUF_LEN, 0);
-
+    
     if(ret < 0){
         buffer = NULL;
-        return;
+        return -1;
     }
 
-    buffer[BUF_LEN - 1] = '\0';
-
+    buffer[BUF_LEN - 1] = '\0'; 
+    return ret;
 }
 
 int send_message(int i, char * message){

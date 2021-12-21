@@ -5,14 +5,12 @@ int client(char* server_ip, int server_port){
     
     int ret, sd;
     struct sockaddr_in srv_addr;
-    char buffer[BUF_LEN];
-    char * request;
     
-    sd = socket(AF_INET,SOCK_STREAM,0);
+    sd = socket(AF_INET, SOCK_STREAM, 0);
     
     memset(&srv_addr, 0, sizeof(srv_addr));
     srv_addr.sin_family = AF_INET;
-    srv_addr.sin_port = server_port;
+    srv_addr.sin_port = htons(server_port);
     inet_pton(AF_INET, server_ip, &srv_addr.sin_addr);
     
     ret = connect(sd, (struct sockaddr*)&srv_addr, sizeof(srv_addr));
