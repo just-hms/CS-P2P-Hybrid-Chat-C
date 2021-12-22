@@ -2,10 +2,10 @@
 
 int main(int argc, char* argv[]){
 
-    int client_id, ret;
+    int client_id, res;
     char * response;
 
-    client_id = client("127.0.0.1", 4040);
+    client_id = client(4040, "__server");
 
     if(client_id < 0){
         printf("error connection with the socket\n");
@@ -15,11 +15,11 @@ int main(int argc, char* argv[]){
     response = request(
         client_id, 
         "kek", 
-        &ret,
+        &res,
         1
     );
 
-    if(ret <= 0){
+    if(res <= 0){
         printf("error during the request\n");
         return;
     }

@@ -1,10 +1,15 @@
-#include "utils.h"
+#include "endpoint.h"
 
 int verbose;
 
+void create_command(char * buffer, void(*f)(char *, char **, int)){
+
+}
+
+
 int build_listener(int port){
 
-    int listener, ret;
+    int listener, res;
     
     struct sockaddr_in my_addr;
     
@@ -15,9 +20,9 @@ int build_listener(int port){
     my_addr.sin_port = htons(port);
     my_addr.sin_addr.s_addr = INADDR_ANY;
     
-    ret = bind(listener, (struct sockaddr*)&my_addr, sizeof(my_addr));
+    res = bind(listener, (struct sockaddr*)&my_addr, sizeof(my_addr));
 
-    if(ret < 0)
+    if(res < 0)
         return -1;
 
     listen(listener, 10);
@@ -52,12 +57,14 @@ void close_connection(int sd, fd_set * master, int corrupted){
     FD_CLR(sd, master);
 }
 
-void server(int port, void(*__input)(char *), char* (*__get_request)(char*), int verbose_param){
+void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_request)(char*, char **, int), int verbose_param){
     
-    int ret, listener, i, fdmax; 
+    int res, listener, i, fdmax, params_len; 
     fd_set master, read_fds;
 
-    char * answer;
+    char * answer, * command;
+    char * params[MAX_INPUT_PARAMS];
+
     char buffer[BUF_LEN];
 
     verbose = verbose_param;
@@ -102,9 +109,10 @@ void server(int port, void(*__input)(char *), char* (*__get_request)(char*), int
             if(i == STDIN_FILENO){
                 if(verbose)
                     printf("new input arrived\n");
-                ret = read(STDIN_FILENO, buffer, BUF_LEN);
                 
-                if(ret < 0){
+                res = read(STDIN_FILENO, buffer, BUF_LEN);
+                
+                if(res < 0){
                     if(verbose)
                         printf("error while typing\n");
                     exit(1);
@@ -112,20 +120,32 @@ void server(int port, void(*__input)(char *), char* (*__get_request)(char*), int
 
                 buffer[BUF_LEN - 1] = '\0';            
 
-                __input(buffer);
+                /* get command */
+                
+                command = strtok(buffer, " ");
+                params_len = 0;
+
+                do{
+                    params[params_len] = strtok(NULL, " ");
+
+                } while (params[params_len++] || params_len + 1 == MAX_INPUT_PARAMS);
+
+                /* get command */
+
+                __input(command, params, params_len);
                 
                 continue;
             }
 
-            ret = receive_message(i, buffer);
+            res = receive_message(i, buffer);
 
-            if(ret < 0){
+            if(res < 0){
                 if(verbose)
                     printf("[%d] connection error while receiving message\n", i);
                 exit(1);
             }
             
-            if(ret == 0){
+            if(res == 0){
                 if(verbose)
                     printf("[%d] closed connection while receiving message\n", i);
                 close_connection(i, &master, 1);
@@ -134,23 +154,35 @@ void server(int port, void(*__input)(char *), char* (*__get_request)(char*), int
 
             if(verbose)
                 printf("[%d] new message received := %s\n", i, buffer);
+            
+            /* get command */
 
-            answer = __get_request(buffer);
+            command = strtok(buffer, " ");
+            params_len = 0;
+
+            do{
+                params[params_len] = strtok(NULL, " ");
+
+            } while (params[params_len++] || params_len + 1 == MAX_INPUT_PARAMS);
+
+            /* get command */
+
+            answer = __get_request(command, params, params_len);
 
             if(answer == NULL)
                 continue;
 
-            ret = send_message(i, answer); 
+            res = send_message(i, answer); 
             free(answer);
 
-            if(ret < 0){
+            if(res < 0){
                 if(verbose)
                     printf("[%d] connection error while sending message\n", i);
                 close_connection(i, &master, 0);
                 continue;
             }
 
-            if(ret != 0)
+            if(res != 0)
                 continue;
             
             printf("[%d] closed connection while sending message\n", i);

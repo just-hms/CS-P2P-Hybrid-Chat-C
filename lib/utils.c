@@ -3,22 +3,22 @@
 
 int receive_message(int i, char * buffer){
 
-    int ret;
+    int res;
 
-    ret = recv(i, (void*)buffer, BUF_LEN, 0);
+    res = recv(i, (void*)buffer, BUF_LEN, 0);
     
-    if(ret < 0){
+    if(res < 0){
         buffer = NULL;
         return -1;
     }
 
     buffer[BUF_LEN - 1] = '\0'; 
-    return ret;
+    return res;
 }
 
 int send_message(int i, char * message){
     
-    int len, ret;
+    int len, res;
     char buffer[BUF_LEN];
     
     len = strnlen(message, BUF_LEN) + 1;
@@ -30,19 +30,26 @@ int send_message(int i, char * message){
 
     buffer[len] = '\0';
 
-    ret = send(i, (void*) buffer, BUF_LEN, 0);
+    res = send(i, (void*) buffer, BUF_LEN, 0);
     
-    return ret;
+    return res;
 }
 
 /* FIX ME strlen not secure */
 
 int starts_with(char * first, char * second){
-    int length_first = strlen(first);
-    int length_second = strlen(second);
+    int len_first = strlen(first);
+    int len_second = strlen(second);
 
-    if(length_first > length_second)
-        return strncmp(first, second, length_second) == 0;
+    if(len_first > len_second)
+        return strncmp(first, second, len_second) == 0;
     
-    return strncmp(first, second, length_first) == 0;
+    return strncmp(first, second, len_first) == 0;
+}
+
+char * build_string(char * s){
+    char * res;
+    res = malloc(sizeof(char) * (strlen(s) + 1));
+    strcpy(res, s);
+    return res;
 }

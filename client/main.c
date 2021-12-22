@@ -1,132 +1,171 @@
-#include "./../lib/server.c"
-#include "./../lib/client.c"
+#include "./../lib/endpoint.h"
+#include "./../lib/connection.h"
 
 #include "../lib/utils.h"
 
 int in_chat = 0;
 
-void handle_chat(char * input){
+void handle_chat(char * command, char ** params, int len){
     
-    if(starts_with(input, "\\q")){
+    if(strcmp(command, "\\q") == 0){
         /* TODO something else ??? */
         in_chat = 0;
         return;
     }
 
-    if(starts_with(input, "\\u")){
+    if(strcmp(command, "\\u") == 0){
 
         return;
     }
 
-    if(starts_with(input, "\\a")){
+    if(strcmp(command, "\\a") == 0){
 
         return;
     }
 
+    printf("ERROR: wrong format");
 }
 
-void input(char * input){
+void input(char * command, char ** params, int len){
     
-    int ret, port;
-    
-    char cmd[1024], username[1024], password[1024];
+    int res, port;
     char * response;
+    char buffer[1024];
+    connection_data * c;
 
-    if(input == NULL)
+    if(command == NULL)
         return;
     
     if(in_chat){
-        handle_chat(input);
+        handle_chat(command, params, len);
         return;
     }
 
-    /* signup username password [port]s*/
+    /* signup username password [port]*/
     
-    if(starts_with(input, "signup")){
+    if(strcmp(command, "signup") == 0){
 
-        sscanf(input, "%1024s %1024s %1024s %d", cmd, username, password, port);
-        
-        if(strlen(username) == 0 || strlen(password) == 0){
-            
-            printf("ERROR: wrong format\n");
-            
+        if(len < 2 || len > 3){
+            printf("error wrong format\n");
             return;
-        }
-
-        if(port == NULL){
-            
         }
         
-        return;
+        port = (len == 3) ? atoi(params[2]) : 4040;
+        
+        sprintf(buffer, "%s %s %s", command, params[0], params[1]);
+        
+        response = request(
+            connection(port, SERVER_NAME),
+            buffer,
+            &res,
+            1
+        );
 
-        if(ret < 0){
-            printf("ERROR: connectiong to the server\n");
+        if(res <= 0){
+            printf("error connectiong to the server\n");
             return;
         }
 
-        if(starts_with(response, "ok")){
-            printf("congratulations %d, you're account has been created!\n", username);
-            return;
-        }
-        if(starts_with(response, "error")){
-            printf("sorry! %d is not available\n", username);
+        if(strcmp(response, "ok") == 0){
+            printf("congratulations %d, you're account has been created!\n", params[0]);
             return;
         }
 
+        if(strcmp(response, "not_available") == 0){
+            printf("sorry! %d is not available\n", params[0]);
+            return;
+        }
+        
+        printf("request error\n");
+        
         return;
     }
 
     /* in username password [port] */
 
-    if(starts_with(input, "in")){
+    if(strcmp(command, "in") == 0){
         
+        if(len < 2 || len > 3){
+            printf("error wrong format\n");
+            return;
+        }
+        
+        port = (len == 3) ? atoi(params[2]) : 4040;
+        
+        sprintf(buffer, "%s %s %s", command, params[0], params[1]);
+
+        response = request(
+            connection(port, SERVER_NAME),
+            buffer,
+            &res,
+            1
+        );
+
+        if(res <= 0){
+            printf("error connecting to the server\n");
+            return;
+        }
+
+        if(strcmp(response, "ok") == 0){
+            printf("congratulations {%d}, you're logged in!\n", params[0]);
+            return;
+        }
+        if(strcmp(response, "wrong_user_or_password") == 0){
+            printf("wrong username or password\n", params[0]);
+            return;
+        }
+
+        printf("request error\n");
+
         return;
     }
-    if(starts_with(input, "hanging")){
-        
-        return;
-    }
-    if(starts_with(input, "show")){
+
+    if(strcmp(command, "hanging") == 0){
         
         return;
     }
 
-    if(starts_with(input, "chat")){
+    if(strcmp(command, "show") == 0){
         
         return;
     }
 
-    if(starts_with(input, "share")){
+    if(strcmp(command, "chat") ==  0){
         
         return;
     }
 
-    if(starts_with(input, "out")){
+    if(strcmp(command, "share") == 0){
         
         return;
     }
+
+    if(strcmp(command, "out") == 0){
+        
+        return;
+    }
+    
+    printf("erro wrong format\n");
 
 }
 
-char * get_request(char * request){
+char * get_request(char * request, char ** params, int len){
     
 }
+
+/* ./client <port> */
 
 int main(int argc, char* argv[]){
     
-    /* TODO get input for the port listening to */
-    
-    if(argc == 0){
-        printf("ERROR: you must specifie a port to connect to!");
+    if(argc != 1){
+        printf("error you must specify a port\n");
         exit(1);
     }
-
-    /*input check */
-
-    server(
+    
+    end_point(
         atoi(argv[0]), 
         input, 
         get_request, 
-        0
+        1
     );
 }
