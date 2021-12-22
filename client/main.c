@@ -28,7 +28,7 @@ void handle_chat(char * command, char ** params, int len){
 
 void input(char * command, char ** params, int len){
     
-    int res, port;
+    int res, port, i;
     char * response;
     char buffer[1024];
     connection_data * c;
@@ -44,14 +44,12 @@ void input(char * command, char ** params, int len){
     /* signup username password [port]*/
     
     if(strcmp(command, "signup") == 0){
-
+                
         if(len < 2 || len > 3){
             printf("error wrong format\n");
             return;
         }
-        
-        port = (len == 3) ? atoi(params[2]) : 4040;
-        
+
         sprintf(buffer, "%s %s %s", command, params[0], params[1]);
         
         response = request(
@@ -145,7 +143,7 @@ void input(char * command, char ** params, int len){
         return;
     }
     
-    printf("erro wrong format\n");
+    printf("error wrong format\n");
 
 }
 
@@ -157,15 +155,15 @@ char * get_request(char * request, char ** params, int len){
 
 int main(int argc, char* argv[]){
     
-    if(argc != 1){
+    if(argc != 2){
         printf("error you must specify a port\n");
         exit(1);
     }
     
-    end_point(
-        atoi(argv[0]), 
+    endpoint(
+        atoi(argv[1]), 
         input, 
         get_request, 
-        1
+        0
     );
 }

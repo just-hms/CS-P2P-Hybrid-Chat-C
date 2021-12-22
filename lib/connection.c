@@ -11,12 +11,12 @@ connection_data * connection(int port, char * username){
     connection_data * c;
     
     c = find_connection(port);
-
+    
     if(c != NULL){
 
         /* set username if connection already exists */
 
-        if(c->username == NULL){
+        if(c->username == NULL && username != NULL){
             
             /* FIME make this sicure */
             strcpy(c->username, username);

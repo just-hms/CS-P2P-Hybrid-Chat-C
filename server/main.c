@@ -3,7 +3,7 @@
 
 /* TODO io.h ???*/
 
-#include "./../lib/io.c"
+#include "./../lib/io.h"
 /*
     Digita un comando:
     1) help --> mostra i dettagli dei comandi
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]){
     
     int port;
 
-    port = (argc == 1) ? atoi(argv[0]) : 4040;
+    port = (argc == 2) ? atoi(argv[1]) : 4040;
     
     endpoint(
         port, 

@@ -130,6 +130,7 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
 
                 } while (params[params_len++] || params_len + 1 == MAX_INPUT_PARAMS);
 
+                params_len--;
                 /* get command */
 
                 __input(command, params, params_len);
@@ -164,6 +165,8 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
                 params[params_len] = strtok(NULL, " ");
 
             } while (params[params_len++] || params_len + 1 == MAX_INPUT_PARAMS);
+            
+            params_len--;
 
             /* get command */
 
