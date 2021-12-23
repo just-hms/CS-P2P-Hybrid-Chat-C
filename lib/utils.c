@@ -1,36 +1,36 @@
 
 #include "utils.h"
 
-int receive_message(int i, char * buffer){
+int receive_message(int i, char * buf){
 
     int res;
 
-    res = recv(i, (void*)buffer, BUF_LEN, 0);
+    res = recv(i, (void*)buf, BUF_LEN, 0);
     
     if(res < 0){
-        buffer = NULL;
+        buf = NULL;
         return -1;
     }
 
-    buffer[BUF_LEN - 1] = '\0'; 
+    buf[BUF_LEN - 1] = '\0'; 
     return res;
 }
 
 int send_message(int i, char * message){
     
     int len, res;
-    char buffer[BUF_LEN];
+    char buf[BUF_LEN];
     
     len = strnlen(message, BUF_LEN) + 1;
     
     if(len >= BUF_LEN)
         return -1;
     
-    strcpy(buffer, message);
+    strcpy(buf, message);
 
-    buffer[len] = '\0';
+    buf[len] = '\0';
 
-    res = send(i, (void*) buffer, BUF_LEN, 0);
+    res = send(i, (void*) buf, BUF_LEN, 0);
     
     return res;
 }

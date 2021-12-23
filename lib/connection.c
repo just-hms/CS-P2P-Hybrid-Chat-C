@@ -18,8 +18,9 @@ connection_data * connection(int port, char * username){
 
         if(c->username == NULL && username != NULL){
             
-            /* FIME make this sicure */
-            strcpy(c->username, username);
+            /* FIX ME*/
+            
+            strncpy(c->username, username, 50);
         }
         return c;
     }
@@ -41,7 +42,7 @@ connection_data * connection(int port, char * username){
 
 char * request(connection_data * connection, char * request, int * res, int need_response){
     
-    char * buffer;
+    char * buf;
 
     if(connection == NULL){
         *res = -1;
@@ -49,7 +50,7 @@ char * request(connection_data * connection, char * request, int * res, int need
     }
 
     *res = send_message(connection->sd, request);
-
+    
     if(*res <= 0){
         remove_connection(connection->sd);
         return NULL;
@@ -57,18 +58,17 @@ char * request(connection_data * connection, char * request, int * res, int need
 
     if(need_response){
         
-        buffer = (char *) malloc(BUF_LEN);
+        buf = (char *) malloc(BUF_LEN);
         
-        *res = receive_message(connection->sd, buffer);
+        *res = receive_message(connection->sd, buf);
         
         if(*res <= 0){
             remove_connection(connection->sd);
-            free(buffer);
+            free(buf);
             return NULL;
-
         }
 
-        return buffer;
+        return buf;
     }
     
     return NULL;
@@ -80,22 +80,19 @@ connection_data * add_connection(int sd, int port, char * username){
     new_connection = (connection_data *) malloc(sizeof(connection_data));
     new_connection->port = port;
     new_connection->sd = sd;
-    
-    /* FIME make this sicure */
-    
-    strcpy(new_connection->username, username);
+    /* FIME */
+    strncpy(new_connection->username, username, 50);
 
     if(head == NULL){
         head = new_connection;
         head->next = NULL;
         count++;
-        return;
+        return new_connection;
     }
 
     new_connection->next = head;
     head = new_connection;
     count++;
-
     return new_connection;
 }
 

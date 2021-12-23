@@ -38,7 +38,7 @@ void accept_new_connection(fd_set * master, int * fdmax, int listener){
     FD_SET(newfd, master); 
     
     if(verbose)
-        printf("new fd := %d\n", newfd);
+        printf("new sd := %d\n", newfd);
 
     if(newfd > *fdmax){ 
         *fdmax = newfd; 
@@ -60,14 +60,14 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
     char * answer, * command;
     char * params[MAX_PARAMS_LEN];
 
-    char buffer[BUF_LEN];
+    char buf[BUF_LEN];
 
     verbose = verbose_param;
 
     listener = build_listener(port);
     
     if(listener <= 0){
-        printf("port %d already in use, try with another one\n", port);
+        printf("\n\nerror port %d already in use, try with another one\n\n", port);
         exit(1);
     }
 
@@ -98,13 +98,13 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
                 continue;
             } 
 
-            memset(buffer, 0, BUF_LEN);                                
+            memset(buf, 0, BUF_LEN);                                
             
             if(i == STDIN_FILENO){
                 if(verbose)
                     printf("new input arrived\n");
                 
-                res = read(STDIN_FILENO, buffer, BUF_LEN);
+                res = read(STDIN_FILENO, buf, BUF_LEN);
                 
                 if(res < 0){
                     if(verbose)
@@ -112,11 +112,11 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
                     exit(1);
                 }
 
-                buffer[BUF_LEN - 1] = '\0';            
+                buf[BUF_LEN - 1] = '\0';            
 
                 /* get command */
                 
-                command = strtok(buffer, " \t\n");
+                command = strtok(buf, " \t\n");
                 params_len = 0;
 
                 do{
@@ -133,7 +133,7 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
                 continue;
             }
 
-            res = receive_message(i, buffer);
+            res = receive_message(i, buf);
 
             if(res < 0){
                 if(verbose)
@@ -149,16 +149,16 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
             }
 
             if(verbose)
-                printf("[%d] new message received := %s\n", i, buffer);
+                printf("[%d] new message received := %s\n", i, buf);
             
             
             /* get command */
             
-            command = strtok(buffer, " \t\n");
+            command = strtok(buf, "|");
             params_len = 0;
 
             do{
-                params[params_len] = strtok(NULL, " \t\n");
+                params[params_len] = strtok(NULL, "|");
 
             } while (params[params_len++] != NULL);
 

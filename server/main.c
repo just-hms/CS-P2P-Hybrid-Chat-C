@@ -16,7 +16,7 @@ void help(){
     printf("\tesc --> shut down the server\n");
 
     printf("\noptionals:\n\n");
-    printf("\tcls --> clear the screen\n");
+    printf("\tcls --> clear the screen\n\n");
 }
 void input(char * command, char ** params, int len){
 
@@ -53,9 +53,6 @@ char * get_request(char * request, char ** params, int len){
         return;
 
     if(strcmp(request, "signup") == 0){
-        
-        /* TODO testing */
-        return build_string("ok");
         
         if(len != 2)
             return build_string("error");
