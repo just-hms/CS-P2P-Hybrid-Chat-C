@@ -10,8 +10,16 @@
     2) list --> mostra un elenco degli utenti connessi
     3) esc --> chiude il
 */
+void help(){
+    printf("\thelp --> show commands details\n");
+    printf("\tlist --> show user list \n");
+    printf("\tesc --> shut down the server\n");
 
+    printf("\noptionals:\n\n");
+    printf("\tcls --> clear the screen\n");
+}
 void input(char * command, char ** params, int len){
+
     if(command == NULL){
         return;
     }
@@ -24,7 +32,13 @@ void input(char * command, char ** params, int len){
     }
 
     if(strcmp(command, "help") == 0){
-        /* show commands details */
+        help();
+        return;
+    }
+
+    if(strcmp(command, "cls") == 0){
+        system("clear");
+        return;
     }
 
     printf("sorry %s is not a valid command\n", command);
@@ -76,10 +90,16 @@ int main(int argc, char* argv[]){
 
     port = (argc == 2) ? atoi(argv[1]) : 4040;
     
+    system("clear");
+
+    printf("server listening :%d\n\nType a command:\n\n", port);
+
+    help();
+
     endpoint(
         port, 
         input, 
         get_request, 
-        0
+        1
     );
 }

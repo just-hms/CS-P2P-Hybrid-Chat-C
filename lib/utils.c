@@ -53,3 +53,15 @@ char * build_string(char * s){
     strcpy(res, s);
     return res;
 }
+
+
+/* testing */
+
+void params_test(char * command, char ** params, int len){
+    int i;
+    printf("command := {%s}\n", command);
+
+    for (i = 0; i < len; i++){
+        printf("param[%i] := {%s}\n", i, params[i]);
+    }
+}

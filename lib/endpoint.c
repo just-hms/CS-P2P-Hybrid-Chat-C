@@ -2,11 +2,6 @@
 
 int verbose;
 
-void create_command(char * buffer, void(*f)(char *, char **, int)){
-
-}
-
-
 int build_listener(int port){
 
     int listener, res;
@@ -59,11 +54,11 @@ void close_connection(int sd, fd_set * master, int corrupted){
 
 void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_request)(char*, char **, int), int verbose_param){
     
-    int res, listener, i, fdmax, params_len; 
+    int res, listener, i, fdmax, params_len, j; 
     fd_set master, read_fds;
 
     char * answer, * command;
-    char * params[MAX_INPUT_PARAMS];
+    char * params[MAX_PARAMS_LEN];
 
     char buffer[BUF_LEN];
 
@@ -71,9 +66,8 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
 
     listener = build_listener(port);
     
-    if(listener < 0){
-        if(verbose) 
-            printf("error on binding\n");
+    if(listener <= 0){
+        printf("port %d already in use, try with another one\n", port);
         exit(1);
     }
 
@@ -122,15 +116,16 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
 
                 /* get command */
                 
-                command = strtok(buffer, " ");
+                command = strtok(buffer, " \t\n");
                 params_len = 0;
 
                 do{
-                    params[params_len] = strtok(NULL, " ");
+                    params[params_len] = strtok(NULL, " \t\n");
 
-                } while (params[params_len++] || params_len + 1 == MAX_INPUT_PARAMS);
+                } while (params[params_len++] != NULL);
 
                 params_len--;
+
                 /* get command */
 
                 __input(command, params, params_len);
@@ -156,20 +151,21 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
             if(verbose)
                 printf("[%d] new message received := %s\n", i, buffer);
             
+            
             /* get command */
-
-            command = strtok(buffer, " ");
+            
+            command = strtok(buffer, " \t\n");
             params_len = 0;
 
             do{
-                params[params_len] = strtok(NULL, " ");
+                params[params_len] = strtok(NULL, " \t\n");
 
-            } while (params[params_len++] || params_len + 1 == MAX_INPUT_PARAMS);
-            
+            } while (params[params_len++] != NULL);
+
             params_len--;
 
             /* get command */
-
+            
             answer = __get_request(command, params, params_len);
 
             if(answer == NULL)

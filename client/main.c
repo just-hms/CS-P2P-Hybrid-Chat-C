@@ -23,7 +23,7 @@ void handle_chat(char * command, char ** params, int len){
         return;
     }
 
-    printf("ERROR: wrong format");
+    printf("error wrong format\n");
 }
 
 void input(char * command, char ** params, int len){
@@ -46,7 +46,7 @@ void input(char * command, char ** params, int len){
     if(strcmp(command, "signup") == 0){
                 
         if(len < 2 || len > 3){
-            printf("error wrong format\n");
+            printf("error wrong format, type:\n\n\tsignup username password\n\n");
             return;
         }
 
@@ -84,7 +84,7 @@ void input(char * command, char ** params, int len){
     if(strcmp(command, "in") == 0){
         
         if(len < 2 || len > 3){
-            printf("error wrong format\n");
+            printf("error wrong format, type:\n\n\tin username password\n\n");
             return;
         }
         
