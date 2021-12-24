@@ -1,7 +1,7 @@
 #include "utils.h"
 #include "io.h"
 
-void endpoint(int, void(*)(char *, char **, int), char* (*)(char*, char **, int), int);
+void endpoint(int, int(*)(char *, char **, int), char* (*)(char*, char **, int), int);
 
 /* remove these ??? */
 int build_listener(int);

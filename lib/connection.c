@@ -10,7 +10,7 @@ connection_data * connection(int port, char * username){
     struct sockaddr_in srv_addr;
     connection_data * c;
     
-    c = find_connection(port);
+    c = find_connection_by_port(port);
     
     if(c != NULL){
 
@@ -34,24 +34,23 @@ connection_data * connection(int port, char * username){
 
     res = connect(sd, (struct sockaddr*)&srv_addr, sizeof(srv_addr));
 
-    if(res <= 0)
+    if(res < 0)
         return NULL;
 
     return add_connection(sd, port, username);
 }
 
-char * request(connection_data * connection, char * request, int * res, int need_response){
+char * request(connection_data * connection, char * request, int need_response){
     
+    int res;
     char * buf;
 
-    if(connection == NULL){
-        *res = -1;
+    if(connection == NULL)
         return NULL;
-    }
 
-    *res = send_message(connection->sd, request);
+    res = send_message(connection->sd, request);
         
-    if(*res <= 0){
+    if(res <= 0){
         remove_connection(connection->sd);
         return NULL;
     }
@@ -60,9 +59,9 @@ char * request(connection_data * connection, char * request, int * res, int need
         
         buf = (char *) malloc(BUF_LEN);
         
-        *res = receive_message(connection->sd, buf);
+        res = receive_message(connection->sd, buf);
         
-        if(*res <= 0){
+        if(res <= 0){
             remove_connection(connection->sd);
             free(buf);
             return NULL;
@@ -131,7 +130,7 @@ void remove_connection(int sd){
 
 }
 
-connection_data * find_connection(int port){
+connection_data * find_connection_by_port(int port){
 
     connection_data * cursor;
 
@@ -148,6 +147,34 @@ connection_data * find_connection(int port){
     return NULL;
 }
 
+void close_all_connections(){
+    connection_data * to_remove;
+
+    while (head){
+        to_remove = head;
+        head = head->next;
+        free(to_remove);
+    }
+    count = 0;
+}
+
 int count_connections(){
     return count;
+}
+
+connection_data * find_connection_by_username(char * username){
+
+    connection_data * cursor;
+
+    cursor = head;
+
+    while (cursor){
+        
+        if(cursor->username == username)
+            return cursor;
+
+        cursor = cursor->next;
+    }
+
+    return NULL;
 }

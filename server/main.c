@@ -18,31 +18,32 @@ void help(){
     printf("\noptionals:\n\n");
     printf("\tcls --> clear the screen\n\n");
 }
-void input(char * command, char ** params, int len){
+int input(char * command, char ** params, int len){
 
     if(command == NULL){
-        return;
+        return 0;
     }
-    if(strcmp(command, "esc") == 0)
-        exit(0);
+    if(strcmp(command, "esc") == 0){
+        return 1;
+    }
 
     if(strcmp(command, "list") == 0){
         /* list users */
-        return;
+        return 0;
     }
 
     if(strcmp(command, "help") == 0){
         help();
-        return;
+        return 0;
     }
 
     if(strcmp(command, "cls") == 0){
         system("clear");
-        return;
+        return 0;
     }
 
     printf("sorry %s is not a valid command\n", command);
-
+    return 0;
 }
 
 char * get_request(char * request, char ** params, int len){
@@ -76,6 +77,18 @@ char * get_request(char * request, char ** params, int len){
             return build_string("ok");
 
         return build_string("wrong_user_or_password");
+    }
+
+    if(strcmp(request, "chat") == 0){
+        
+        if(len != 1)
+            return build_string("error");
+
+        // find speciefied user
+        // if he doesn't exist error
+        // if he's online send it {4040} ???
+        // if he's offline send it {-1} ???
+        
     }
 }
 

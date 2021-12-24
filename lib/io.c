@@ -90,3 +90,14 @@ int user_login(char * username, char * password){
     free(user_record);
     return 0;
 }
+
+char * get_chat(char * chat_name){
+    
+    char * chat;
+
+    chat = malloc(10 * sizeof(char));
+
+
+    strcpy(chat, "todo");
+    return chat;
+}

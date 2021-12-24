@@ -6,3 +6,4 @@
 [] check data types when sending them
 [] fix verbose shit
 [] try to brake server doing wrong requests
+[] timeout in requests

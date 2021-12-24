@@ -52,7 +52,7 @@ void close_connection(int sd, fd_set * master, int corrupted){
     FD_CLR(sd, master);
 }
 
-void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_request)(char*, char **, int), int verbose_param){
+void endpoint(int port, int(*__input)(char *, char **, int), char* (*__get_request)(char*, char **, int), int verbose_param){
     
     int res, listener, i, fdmax, params_len, j; 
     fd_set master, read_fds;
@@ -128,8 +128,13 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
 
                 /* get command */
 
-                __input(command, params, params_len);
+                /* close socket and exit */
                 
+                if(__input(command, params, params_len)){
+                    close(listener);
+                    exit(0);
+                }
+
                 continue;
             }
 

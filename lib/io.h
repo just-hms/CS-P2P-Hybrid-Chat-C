@@ -6,3 +6,4 @@
 
 int user_add(char *, char *);
 int user_login(char *, char *);
+char * get_chat(char *);
