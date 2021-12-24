@@ -31,12 +31,12 @@ connection_data * connection(int port, char * username){
     srv_addr.sin_family = AF_INET;
     srv_addr.sin_port = htons(port);
     inet_pton(AF_INET, "127.0.0.1", &srv_addr.sin_addr);
-    
+
     res = connect(sd, (struct sockaddr*)&srv_addr, sizeof(srv_addr));
 
-    if(res < 0)
+    if(res <= 0)
         return NULL;
-    
+
     return add_connection(sd, port, username);
 }
 
@@ -50,7 +50,7 @@ char * request(connection_data * connection, char * request, int * res, int need
     }
 
     *res = send_message(connection->sd, request);
-    
+        
     if(*res <= 0){
         remove_connection(connection->sd);
         return NULL;

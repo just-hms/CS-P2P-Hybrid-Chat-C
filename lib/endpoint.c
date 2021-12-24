@@ -90,7 +90,7 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
 
             if(!FD_ISSET(i, &read_fds))
                 continue;
-        
+            
             if(i == listener) {
                 if(verbose)
                     printf("new connection asked\n");
@@ -152,8 +152,8 @@ void endpoint(int port, void(*__input)(char *, char **, int), char* (*__get_requ
                 printf("[%d] new message received := %s\n", i, buf);
             
             
-            /* get command */
-            
+            /* get command */   
+                     
             command = strtok(buf, "|");
             params_len = 0;
 

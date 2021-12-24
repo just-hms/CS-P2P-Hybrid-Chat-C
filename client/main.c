@@ -52,7 +52,7 @@ void input(char * command, char ** params, int len){
         }
 
         sprintf(buf, "%s|%s|%s\0", command, params[0], params[1]);
-        
+                
         default_port = (len == 3) ? atoi(params[2]) : default_port;
         
         c = connection(port, SERVER_NAME);
