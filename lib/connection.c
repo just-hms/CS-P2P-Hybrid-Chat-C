@@ -107,7 +107,10 @@ void remove_connection(int sd){
     last = NULL;
 
     if(head->sd == sd){
+
         head = head->next; 
+        
+        close(cursor->sd);
         free(cursor);
         cursor = NULL;
         count--;
@@ -153,6 +156,7 @@ void close_all_connections(){
     while (head){
         to_remove = head;
         head = head->next;
+        close(to_remove->sd);
         free(to_remove);
     }
     count = 0;

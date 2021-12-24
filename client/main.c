@@ -10,15 +10,19 @@ int logged_in = 0; /* TODO add this check for doing requests */
 
 int default_port = 4040;
 
-void open_chat(connection_data * c){
+int current_port; /* your port */
+
+/* pass username, chatname, groupchat and others */
+
+void open_chat(char * username){
     
     in_chat = 1;
-    system("clear");
 
-    char * chat = get_chat(c->username);
-    printf("in chat with %s\n\n", c->username);
+    char * chat = get_chat(username);
 
-    printf("%s", chat);
+    printf("\n\nin chat with {%s}\n\n", username);
+
+    printf("%s\n", chat);
 }
 
 void handle_chat(char * command, char ** params, int len){
@@ -26,7 +30,6 @@ void handle_chat(char * command, char ** params, int len){
     /* quit the chat */    
     if(strcmp(command, "\\q") == 0){
         in_chat = 0;
-        system("clear");
         return;
     }
 
@@ -49,7 +52,7 @@ int input(char * command, char ** params, int len){
     
     int res, port, i;
     char * response;
-    char buf[1024];
+    char buf[BUF_LEN];
     connection_data * c;
 
     if(command == NULL)
@@ -112,7 +115,7 @@ int input(char * command, char ** params, int len){
             return 0;
         }
 
-        sprintf(buf, "%s|%s|%s\0", command, params[0], params[1]);
+        sprintf(buf, "%s|%s|%s|%d\0", command, params[0], params[1], current_port);
         
         default_port = (len == 3) ? atoi(params[2]) : default_port;
         
@@ -163,7 +166,7 @@ int input(char * command, char ** params, int len){
         
         /* if yes open the chat with {username} */
         if(c != NULL){
-            open_chat(c);
+            open_chat(c->username);
             return 0;
         }
 
@@ -184,12 +187,17 @@ int input(char * command, char ** params, int len){
 
         port = atoi(response);
 
-        c = connection(
-            port, 
-            params[0]
-        );
+        /* peer offline */
 
-        open_chat(c);
+        if(port == -1){
+            printf("peer offline\n");
+            open_chat(params[0]);
+            return 0;
+        }
+
+        c = connection(port, params[0]);
+
+        open_chat(c->username);
 
         return 0;
     }
@@ -200,6 +208,12 @@ int input(char * command, char ** params, int len){
     }
 
     if(strcmp(command, "out") == 0){
+        
+        /* TODO needs to always work even 
+            if he doesn't write out
+            server is offline 
+        */
+
         close_all_connections();
         return 1;
     }
@@ -214,7 +228,6 @@ char * get_request(char * request, char ** params, int len){
 }
 
 /* ./client <port> */
-
 int main(int argc, char* argv[]){
     
     if(argc != 2){
@@ -222,8 +235,10 @@ int main(int argc, char* argv[]){
         exit(1);
     }
     
+    current_port = atoi(argv[1]);
+
     endpoint(
-        atoi(argv[1]), 
+        current_port, 
         input, 
         get_request, 
         0

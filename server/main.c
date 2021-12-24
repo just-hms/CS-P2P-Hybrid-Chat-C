@@ -4,12 +4,7 @@
 /* TODO io.h ???*/
 
 #include "./../lib/io.h"
-/*
-    Digita un comando:
-    1) help --> mostra i dettagli dei comandi
-    2) list --> mostra un elenco degli utenti connessi
-    3) esc --> chiude il
-*/
+
 void help(){
     printf("\thelp --> show commands details\n");
     printf("\tlist --> show user list \n");
@@ -18,6 +13,7 @@ void help(){
     printf("\noptionals:\n\n");
     printf("\tcls --> clear the screen\n\n");
 }
+
 int input(char * command, char ** params, int len){
 
     if(command == NULL){
@@ -48,7 +44,10 @@ int input(char * command, char ** params, int len){
 
 char * get_request(char * request, char ** params, int len){
     
-    int res;
+    int res, port;
+
+    /* TODO maybe fix this*/
+    char buf[BUF_LEN];
     
     if(request == NULL)
         return;
@@ -68,13 +67,18 @@ char * get_request(char * request, char ** params, int len){
 
     if(strcmp(request, "in") == 0){
         
-        if(len != 2)
+        if(len != 3)
             return build_string("error");
 
-        res = user_login(params[0], params[1]);
+        if(user_login(params[0], params[1])){
+            
+            user_start_session(
+                params[0],          /* username */
+                atoi(params[2])     /* user_port */
+            );
 
-        if(res)
             return build_string("ok");
+        }
 
         return build_string("wrong_user_or_password");
     }
@@ -83,12 +87,16 @@ char * get_request(char * request, char ** params, int len){
         
         if(len != 1)
             return build_string("error");
-
-        // find speciefied user
-        // if he doesn't exist error
-        // if he's online send it {4040} ???
-        // if he's offline send it {-1} ???
         
+        /* if he doesn't exist error */
+        if(!user_exists(params[0]))
+            return build_string("error");
+        
+        port = user_get_session(params[0]);
+
+        sprintf(buf, "%d", port);
+
+        return build_string(buf);
     }
 }
 
