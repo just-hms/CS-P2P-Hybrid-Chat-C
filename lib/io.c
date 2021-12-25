@@ -1,14 +1,5 @@
 #include "io.h"
 
-char * time_to_string(time_t t){
-    struct tm *ptm = gmtime(&t);
-    char buf;
-    
-    buf = malloc(256 * sizeof(char));
-
-    strftime(buf, sizeof buf, "%F %T", ptm);
-}
-
 time_t string_to_time(char * time_string){
     struct tm tm;
     strptime(time_string, "%F %T", &tm);
@@ -32,12 +23,8 @@ char * user_find(char * username){
         if(!starts_with(username, line))
             continue;
 
-        for (i = 0; i < len; i++){
-            if(line[i] == '\n') {
-                line[i] = '\0';
-                break;
-            }
-        }
+        replace_n_with_0(line);
+
         fclose(fp);
         return line;
     }
@@ -87,7 +74,8 @@ int user_login(char * username, char * password){
     if(user_record == NULL)
         return 0;
 
-    buf = malloc((strlen(username) + strlen(username) + 4) * sizeof(char));
+
+    buf = malloc((strlen(username) + strlen(password) + 4) * sizeof(char));
         
     sprintf(buf, "%s|%s\0", username, password);
     
@@ -108,8 +96,8 @@ int user_get_session(char * username){
     int len = 0;
     int read;
     
-    char * start[256]; 
-    char * end[256]; 
+    char start[256]; 
+    char end[256]; 
     int i, port;
 
     char * record;
@@ -125,12 +113,7 @@ int user_get_session(char * username){
         if(!starts_with(username, line))
             continue;
 
-        for (i = 0; i < len; i++){
-            if(line[i] == '\n') {
-                line[i] = '\0';
-                break;
-            }
-        }
+        replace_n_with_0(line);
 
         record = (char *) malloc(len * sizeof(char));
         strcpy(record, line);
@@ -139,8 +122,6 @@ int user_get_session(char * username){
     fclose(fp);
     if (line)
         free(line);
-
-    printf("%s\n", record);
 
     if(record == NULL)
         return -1;
@@ -156,6 +137,9 @@ int user_get_session(char * username){
 void user_start_session(char * username, int port){
     FILE * fp;
     time_t t; 
+
+    time_t rawtime;
+    struct tm * timeinfo;
     char * time_string;
 
     fp = fopen(SESSION_FILE, "a");
@@ -164,9 +148,8 @@ void user_start_session(char * username, int port){
         return;
 
     /* FIX ME*/
-    
-    time(&t);
-    time_string = time_to_string(t);
+    time (&rawtime);
+    time_string = replace_n_with_0(asctime(localtime(&rawtime)));
     
     fprintf(
         fp,
@@ -176,7 +159,6 @@ void user_start_session(char * username, int port){
         time_string
     );
 
-    free(time_string);
     fclose(fp);
 }
 

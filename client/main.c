@@ -4,32 +4,44 @@
 
 #include "./../lib/utils.h"
 
-int in_chat = 0;
-
 int logged_in = 0; /* TODO add this check for doing requests */
 
 int default_port = 4040;
 
 int current_port; /* your port */
 
+connection_data * talking_to = NULL;
 /* pass username, chatname, groupchat and others */
 
-void open_chat(char * username){
+void open_chat(connection_data * tmp){
     
-    in_chat = 1;
+    char * chat;
 
-    char * chat = get_chat(username);
+    talking_to = tmp;
 
-    printf("\n\nin chat with {%s}\n\n", username);
+    chat = get_chat(tmp->username);
+
+    printf("\n\nin chat with {%s}\n\n", tmp->username);
 
     printf("%s\n", chat);
+    
+    free(chat);
 }
 
 void handle_chat(char * command, char ** params, int len){
+    
+    connection_data * c;
+    
+    /* build message in some ways */
+    char * message;
 
     /* quit the chat */    
     if(strcmp(command, "\\q") == 0){
-        in_chat = 0;
+        
+        if(talking_to)
+            free(talking_to);
+        
+        talking_to = NULL;
         return;
     }
 
@@ -45,7 +57,41 @@ void handle_chat(char * command, char ** params, int len){
         return;
     }
 
-    printf("error wrong format\n");
+    /* write a message */
+
+
+    if(talking_to != NULL){
+        
+        request(
+            talking_to,
+            message,
+            0
+        );
+
+        return;
+    }
+        
+    c = connection(default_port, SERVER_NAME);
+        
+    if(c == NULL){
+        
+        printf("both the server and %s are offline\n", talking_to);
+
+        if(talking_to)
+            free(talking_to);
+        talking_to = NULL;
+        return;
+    }
+    
+    /* buld message with "message" command + params */
+    
+    /* send message to server */
+
+    request(
+        c,
+        params[0],
+        0
+    );
 }
 
 int input(char * command, char ** params, int len){
@@ -58,7 +104,7 @@ int input(char * command, char ** params, int len){
     if(command == NULL)
         return 0;
     
-    if(in_chat){
+    if(talking_to != NULL){
         handle_chat(command, params, len);
         return 0;
     }
@@ -166,7 +212,8 @@ int input(char * command, char ** params, int len){
         
         /* if yes open the chat with {username} */
         if(c != NULL){
-            open_chat(c->username);
+            
+            open_chat(c);
             return 0;
         }
 
@@ -190,14 +237,16 @@ int input(char * command, char ** params, int len){
         /* peer offline */
 
         if(port == -1){
-            printf("peer offline\n");
-            open_chat(params[0]);
+            
+            /* build fake connection */
+            
+            open_chat(NULL);
             return 0;
         }
 
         c = connection(port, params[0]);
 
-        open_chat(c->username);
+        open_chat(c);
 
         return 0;
     }

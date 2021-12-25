@@ -65,3 +65,16 @@ void params_test(char * command, char ** params, int len){
         printf("param[%i] := {%s}\n", i, params[i]);
     }
 }
+
+char * replace_n_with_0(char * string){
+    int i;
+    int len;
+    len = strlen(string);
+    for (i = 0; i < len; i++){
+        if(string[i] == '\n'){
+            string[i] = '\0';
+            return string;
+        }
+    }
+    
+}

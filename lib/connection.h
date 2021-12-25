@@ -5,10 +5,12 @@
 
 
 struct connection_data{
+    
     int sd;
     int port;
     char username[50];
     struct connection_data * next;
+
 } typedef connection_data;
 
 

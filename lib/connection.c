@@ -69,8 +69,8 @@ char * request(connection_data * connection, char * request, int need_response){
 
         return buf;
     }
-    
-    return NULL;
+
+    return build_string("ok");
 }
 
 connection_data * add_connection(int sd, int port, char * username){
