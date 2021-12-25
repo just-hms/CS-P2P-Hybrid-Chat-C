@@ -1,2 +1,2 @@
-viola|1234
-ale|4321
+viola 1234
+ale 4321

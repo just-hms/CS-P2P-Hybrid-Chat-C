@@ -1,5 +1,2 @@
-viola|5050|Sat Dec 25 01:38:56 2021|alive
-viola|5050|Sat Dec 25 01:48:38 2021|alive
-viola|5050|Sat Dec 25 01:52:20 2021|alive
-viola|5050|Sat Dec 25 01:52:34 2021|alive
-ale|5051|Sat Dec 25 01:54:10 2021|alive
+viola 5050 273493294 1
+ale 5051 273493294 1

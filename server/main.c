@@ -2,7 +2,6 @@
 #include "./../lib/utils.h"
 #include "./../lib/connection.h"
 
-/* TODO io.h ???*/
 
 #include "./../lib/io.h"
 
@@ -16,16 +15,27 @@ void help(){
 }
 
 int input(char * command, char ** params, int len){
+    
+    char * user_list;
 
     if(command == NULL){
         return 0;
     }
+
     if(strcmp(command, "esc") == 0){
         return 1;
     }
 
     if(strcmp(command, "list") == 0){
-        /* list users */
+        
+        user_list = user_get_online_list();
+        
+        if(user_list == NULL){
+            printf("it's all quiet here...\n", user_list);
+            return 0;
+        }
+        printf("%s\n", user_list);
+        free(user_list);
         return 0;
     }
 
@@ -48,7 +58,8 @@ char * get_request(char * request, char ** params, int len){
     connection_data * c;
     int res, port;
 
-    /* TODO maybe fix this*/
+    /* FIX ME */
+
     char buf[BUF_LEN];
 
     char * response;
@@ -76,6 +87,11 @@ char * get_request(char * request, char ** params, int len){
 
         if(user_login(params[0], params[1])){
             
+            port = user_get_session(params[0]);
+
+            if(port != -1)
+                return build_string("already_logged");    
+
             user_start_session(
                 params[0],          /* username */
                 atoi(params[2])     /* user_port */
@@ -144,9 +160,22 @@ char * get_request(char * request, char ** params, int len){
             0
         );
         
-        return response;
-        
+        return response;   
     }
+    
+    if(strcmp(request, "list") == 0){
+        
+        response = user_get_online_list();
+        
+        /* should never happen cause he's online */
+        
+        if(response == NULL){
+            return build_string("it's all quiet here...");
+        }
+
+        return response;
+    }
+
 }
 
 /* ./server [port] */

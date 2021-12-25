@@ -1,9 +1,18 @@
 #include "io.h"
 
+time_t get_current_time(){
+
+    char * buf[256];
+
+    return time(NULL);
+}
+
 time_t string_to_time(char * time_string){
-    struct tm tm;
-    strptime(time_string, "%F %T", &tm);
-    return mktime(&tm);
+
+    time_t rawtime;
+    sscanf(time_string, "%ld", rawtime);
+
+    return rawtime;
 }
 
 char * user_find(char * username){
@@ -77,7 +86,7 @@ int user_login(char * username, char * password){
 
     buf = malloc((strlen(username) + strlen(password) + 4) * sizeof(char));
         
-    sprintf(buf, "%s|%s\0", username, password);
+    sprintf(buf, "%s %s\0", username, password);
     
     if(strcmp(user_record, buf) == 0){
         free(buf);
@@ -91,13 +100,13 @@ int user_login(char * username, char * password){
 }
 
 int user_get_session(char * username){
+    
     FILE * fp;
     char * line = NULL;
     int len = 0;
     int read;
     
-    char start[256]; 
-    char end[256]; 
+    time_t start, end; 
     int i, port;
 
     char * record;
@@ -126,20 +135,20 @@ int user_get_session(char * username){
     if(record == NULL)
         return -1;
     
-    sscanf(record, "%s|%d|%s|%s", username, port, start, end);
+    sscanf(record, "%s %d %ld %ld", username, &port, &start, &end);
 
-    if(strcmp(end, "alive") == 0)
+    free(record);
+
+    if(end == -1)
         return port;
 
     return -1;
 }
 
 void user_start_session(char * username, int port){
+    
     FILE * fp;
-    time_t t; 
 
-    time_t rawtime;
-    struct tm * timeinfo;
     char * time_string;
 
     fp = fopen(SESSION_FILE, "a");
@@ -148,34 +157,81 @@ void user_start_session(char * username, int port){
         return;
 
     /* FIX ME*/
-    time (&rawtime);
-    time_string = replace_n_with_0(asctime(localtime(&rawtime)));
     
     fprintf(
         fp,
-        "%s|%d|%s|alive\n", 
+        "%s %d %ld -1\n", 
         username, 
         port,
-        time_string
+        get_current_time()
     );
 
+    free(time_string);
     fclose(fp);
 }
 
 void user_end_session(char * username){
     
-    /* TODO me*/
+    FILE * fPtr;
+    FILE * fTemp;
+    
+    char buf[BUF_LEN];
+    char newline[BUF_LEN];
 
+    time_t start, end;
+
+    int port;
+
+    fPtr  = fopen(SESSION_FILE, "r");
+    fTemp = fopen(TMP_FILE, "w"); 
+
+    if (fPtr == NULL || fTemp == NULL)
+        return;
+
+
+    while ((fgets(buf, BUF_LEN, fPtr)) != NULL){
+
+        if(starts_with(buf, username)){
+
+            replace_n_with_0(buf);
+
+            sscanf(buf, "%s %d %ld %ld", username, &port, &start, &end);
+
+            if(end == -1){
+
+                fprintf(
+                    fTemp, 
+                    "%s %d %ld %ld\n", 
+                    username, 
+                    port, 
+                    start, 
+                    get_current_time()
+                );
+
+                continue;
+            }
+        }
+
+        fputs(buf, fTemp);
+    }
+
+    fclose(fPtr);
+    fclose(fTemp);
+
+
+    remove(SESSION_FILE);
+    rename(TMP_FILE, SESSION_FILE);
+
+    return;
 }
 
-
-
 char * get_chat(char * chat_name){
+    
+    /* TODO */
     
     char * chat;
 
     chat = malloc(10 * sizeof(char));
-
 
     strcpy(chat, "todo");
     return chat;
@@ -189,4 +245,63 @@ char * user_show(char * sender, char * receiver){
 
 char * user_hanging(char * receiver){
     /* TODO */
+}
+
+char * user_get_online_list(){
+    
+    FILE * fp;
+    char * line = NULL;
+    int len = 0;
+    
+    time_t start, end;
+
+    int i, port, count;
+
+    char * buf;
+
+    /* FIX ME*/
+
+    char username[50];
+
+    count = 0;
+
+    fp = fopen(SESSION_FILE, "r");
+    if (fp == NULL)
+        return NULL;
+
+    while (getline(&line, &len, fp) != -1) {
+        
+        replace_n_with_0(line);
+
+        sscanf(line, "%s %d %ld %ld", username, &port, &start, &end);
+        
+        if(end == -1)
+            count++;        
+    }
+
+    if(count == 0)
+        return NULL;
+
+    rewind(fp);
+    buf = malloc((sizeof(char) + 2) * count);
+    
+    buf[0] = '\0';
+
+    while (getline(&line, &len, fp) != -1) {
+        replace_n_with_0(line);
+
+        sscanf(line, "%s %d %ld %ld", username, &port, &start, &end);
+
+        if(end == -1){
+            strcat(buf, username);
+            strcat(buf, "\n");
+        }
+    }   
+
+    strcat(buf, "\0");
+    
+    if (line)
+        free(line);
+
+    return buf;
 }

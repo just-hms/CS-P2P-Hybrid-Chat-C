@@ -13,3 +13,5 @@
 
 
 [] handle deaths, connection module should do it by itself
+
+[] fix methods to access file

@@ -25,7 +25,6 @@ int build_listener(int port){
     return listener;
 }
 
-/* TODO maybe add an handler after this */
 void accept_new_connection(fd_set * master, int * fdmax, int listener){
     
     struct sockaddr_in cl_addr;
@@ -45,7 +44,6 @@ void accept_new_connection(fd_set * master, int * fdmax, int listener){
     }
 }
 
-/* TODO maybe also an extern function*/
 void close_connection(int sd, fd_set * master, int corrupted){
     if(!corrupted)
         close(sd);
@@ -191,11 +189,6 @@ void endpoint(int port, int(*__input)(char *, char **, int), char* (*__get_reque
             
             printf("[%d] closed connection while sending message\n", i);
             close_connection(i, &master, 0);
-
-            /*
-             * TODO answer needs to control closed connection in some ways
-             * TODO close connection with client onerror 
-            */
 
         }
     }

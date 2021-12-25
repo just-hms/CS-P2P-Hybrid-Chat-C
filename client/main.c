@@ -6,11 +6,11 @@
 
 int default_port = 4040;
 
-int current_port;           /* your port */
-char * current_username = NULL;    /* your current username */
+int current_port;                       /* your port */
+char * current_username = NULL;         /* your current username */
 
 connection_data * talking_to = NULL;
-char offline_username [50]; /* FIX ME */
+char offline_username [50];             /* FIX ME */
 char buf[BUF_LEN];
 
 void add_to_chat(connection_data * c){
@@ -21,7 +21,7 @@ void open_chat(char * username){
     
     char * chat;
 
-    /* FIXME*/
+    /* FIX ME */
     
     strcpy(offline_username, username);
 
@@ -49,6 +49,7 @@ void handle_chat(char * command, char ** params, int len){
     int port;
 
     /* quit the chat */    
+
     if(strcmp(command, "\\q") == 0){     
         talking_to = NULL;
         return;
@@ -85,7 +86,7 @@ void handle_chat(char * command, char ** params, int len){
     
     if(strcmp(command, "\\a") == 0){
 
-        /* TOOD create group chat with maybe an id*/  
+        /* TOOD create group chat with maybe an id */  
         
         c = find_connection_by_username(params[0]);
 
@@ -176,7 +177,6 @@ int input(char * command, char ** params, int len){
                 
         if(len < 2 || len > 3){
             printf("error wrong format, type:\n\nsignup username password server_port\n\n");
-            
             return 0;
         }
 
@@ -242,8 +242,14 @@ int input(char * command, char ** params, int len){
             printf("congratulations {%s}, you're logged in!\n", params[0]);
             return 0;
         }
+        
         if(strcmp(response, "wrong_user_or_password") == 0){
             printf("wrong username or password\n");
+            return 0;
+        }
+        
+        if(strcmp(response, "already_logged") == 0){
+            printf("sorry but you are already logged\n");
             return 0;
         }
 
@@ -384,10 +390,12 @@ int input(char * command, char ** params, int len){
     /* out */
     if(strcmp(command, "out") == 0){
         
-        /* TODO needs to always work even 
+        /* TODO 
+            needs to always work even 
             if he doesn't write out
             server is offline 
         */
+
         if(current_username)
             free(current_username);
         current_username = NULL;
@@ -396,7 +404,7 @@ int input(char * command, char ** params, int len){
         return 1;
     }
     
-    printf("error wrong format\n");
+    printf("sorry %s is not a valid command\n", command);
     
     return 0;
 }
@@ -413,12 +421,12 @@ char * get_request(char * request, char ** params, int len){
             return NULL;
         }
         if(talking_to == NULL){
-            // notify
+            /* notify and refresh chat */
             return NULL;
         }
 
         if(strcmp(params[0], talking_to->username) != 0 ){
-            // notify
+            /* notify and refresh chat */
             return NULL;
         }
         
