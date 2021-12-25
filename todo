@@ -14,4 +14,5 @@
 
 [] handle deaths, connection module should do it by itself
 
-[] fix methods to access file
+[] fix different methods to access file
+[] link sd of endpoint with connections or at least username ???

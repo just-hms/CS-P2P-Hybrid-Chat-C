@@ -4,7 +4,7 @@
 
 #include "./../lib/utils.h"
 
-int default_port = 4040;
+int default_port = 4242;                /* server default port*/
 
 int current_port;                       /* your port */
 char * current_username = NULL;         /* your current username */
@@ -27,6 +27,10 @@ void open_chat(char * username){
 
     chat = get_chat(username);
 
+    if(chat == NULL){
+        printf("error opening the chat\n");
+        return;
+    }
     if(talking_to)
         printf("\n\nin chat with {%s} :online\n\n", username);
     else
@@ -103,25 +107,25 @@ void handle_chat(char * command, char ** params, int len){
 
         if(response == NULL){
             printf("error connectiong to the server\n");
-            return 0;
+            return;
         }
 
         if(strcmp(response, "error") == 0){
             printf("sorry there is no one by the name of %s!\n", params[0]);
-            return 0;
+            return;
         }
 
         port = atoi(response);
 
         if(port == -1){
             printf("sorry %s is offline\n", params[0]);
-            return 0;
+            return;
         }
 
-        c = connection(params[0], port);
+        c = connection(port, params[0]);
         add_to_chat(c);
 
-        return 0;
+        return;
     }
 
     /* write a message */
@@ -172,9 +176,13 @@ int input(char * command, char ** params, int len){
     }
 
     /* signup username password [port]*/
-    
+
     if(strcmp(command, "signup") == 0){
-                
+
+        if(current_username != NULL){
+            printf("you must logout to create an account\n");
+            return 0;
+        }      
         if(len < 2 || len > 3){
             printf("error wrong format, type:\n\nsignup username password server_port\n\n");
             return 0;
@@ -216,6 +224,10 @@ int input(char * command, char ** params, int len){
 
     if(strcmp(command, "in") == 0){
         
+        if(current_username != NULL){
+            printf("you must logout to login with another account\n");
+            return 0;
+        }      
         if(len < 2 || len > 3){
             printf("error wrong format, type:\n\nin username password server_port\n\n");
             return 0;
@@ -249,7 +261,7 @@ int input(char * command, char ** params, int len){
         }
         
         if(strcmp(response, "already_logged") == 0){
-            printf("sorry but you are already logged\n");
+            printf("sorry but you are already logged in another device, disconnect from it to login from here\n");
             return 0;
         }
 
@@ -396,7 +408,7 @@ int input(char * command, char ** params, int len){
             server is offline 
         */
 
-        if(current_username)
+        if(current_username != NULL)
             free(current_username);
         current_username = NULL;
         

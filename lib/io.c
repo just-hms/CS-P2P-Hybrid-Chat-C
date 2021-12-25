@@ -104,7 +104,6 @@ int user_get_session(char * username){
     FILE * fp;
     char * line = NULL;
     int len = 0;
-    int read;
     
     time_t start, end; 
     int i, port;
@@ -117,7 +116,7 @@ int user_get_session(char * username){
 
     record = NULL;
 
-    while ((read = getline(&line, &len, fp)) != -1) {
+    while (getline(&line, &len, fp) != -1) {
         
         if(!starts_with(username, line))
             continue;
@@ -129,6 +128,7 @@ int user_get_session(char * username){
     }
 
     fclose(fp);
+
     if (line)
         free(line);
 
@@ -149,8 +149,6 @@ void user_start_session(char * username, int port){
     
     FILE * fp;
 
-    char * time_string;
-
     fp = fopen(SESSION_FILE, "a");
     
     if (fp == NULL)
@@ -166,7 +164,6 @@ void user_start_session(char * username, int port){
         get_current_time()
     );
 
-    free(time_string);
     fclose(fp);
 }
 

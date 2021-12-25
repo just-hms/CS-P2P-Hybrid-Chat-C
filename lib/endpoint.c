@@ -173,10 +173,9 @@ void endpoint(int port, int(*__input)(char *, char **, int), char* (*__get_reque
 
             if(answer == NULL)
                 continue;
-
+            
             res = send_message(i, answer); 
-            free(answer);
-
+    
             if(res < 0){
                 if(verbose)
                     printf("[%d] connection error while sending message\n", i);

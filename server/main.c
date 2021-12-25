@@ -87,8 +87,10 @@ char * get_request(char * request, char ** params, int len){
 
         if(user_login(params[0], params[1])){
             
+            /* TEST */
+            
             port = user_get_session(params[0]);
-
+            
             if(port != -1)
                 return build_string("already_logged");    
 
@@ -185,7 +187,7 @@ int main(int argc, char* argv[]){
     
     int port;
 
-    port = (argc == 2) ? atoi(argv[1]) : 4040;
+    port = (argc == 2) ? atoi(argv[1]) : 4242;
     
     system("clear");
 
