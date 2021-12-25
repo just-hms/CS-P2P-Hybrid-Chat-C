@@ -15,11 +15,13 @@ struct connection_data{
 
 
 connection_data * connection(int, char *);
-char * request(connection_data *, char *, int);
+char * make_request(connection_data *, char *, int);
 connection_data * find_connection_by_username(char *);
 void close_all_connections();
 connection_data * find_connection_by_port(int);
 
+void put_online(connection_data *, int, int);
+void put_offline(connection_data *);
 /* remove these ???*/
 
 connection_data * add_connection(int, int, char*);

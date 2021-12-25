@@ -12,6 +12,9 @@ int user_exists(char *);
 int user_get_session(char *);
 void user_start_session(char *, int);
 void user_end_session(char *);
+char * user_show(char *, char *);
+char * user_hanging(char *);
+
 
 char * get_chat(char *);
 

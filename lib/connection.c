@@ -40,7 +40,7 @@ connection_data * connection(int port, char * username){
     return add_connection(sd, port, username);
 }
 
-char * request(connection_data * connection, char * request, int need_response){
+char * make_request(connection_data * connection, char * request, int need_response){
     
     int res;
     char * buf;
@@ -69,8 +69,8 @@ char * request(connection_data * connection, char * request, int need_response){
 
         return buf;
     }
-
-    return build_string("ok");
+    
+    return NULL;
 }
 
 connection_data * add_connection(int sd, int port, char * username){

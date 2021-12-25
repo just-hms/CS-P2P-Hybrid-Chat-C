@@ -180,3 +180,13 @@ char * get_chat(char * chat_name){
     strcpy(chat, "todo");
     return chat;
 }
+
+char * user_show(char * sender, char * receiver){
+    /* TODO 
+        flush buffered messages
+    */
+}
+
+char * user_hanging(char * receiver){
+    /* TODO */
+}

@@ -4,25 +4,34 @@
 
 #include "./../lib/utils.h"
 
-int logged_in = 0; /* TODO add this check for doing requests */
-
 int default_port = 4040;
 
-int current_port; /* your port */
+int current_port;           /* your port */
+char * current_username = NULL;    /* your current username */
 
 connection_data * talking_to = NULL;
-/* pass username, chatname, groupchat and others */
+char offline_username [50]; /* FIX ME */
+char buf[BUF_LEN];
 
-void open_chat(connection_data * tmp){
+void add_to_chat(connection_data * c){
+    /* TODO me*/
+}
+
+void open_chat(char * username){
     
     char * chat;
 
-    talking_to = tmp;
+    /* FIXME*/
+    
+    strcpy(offline_username, username);
 
-    chat = get_chat(tmp->username);
+    chat = get_chat(username);
 
-    printf("\n\nin chat with {%s}\n\n", tmp->username);
-
+    if(talking_to)
+        printf("\n\nin chat with {%s} :online\n\n", username);
+    else
+        printf("\n\nin chat with {%s} :offline\n\n", username);
+    
     printf("%s\n", chat);
     
     free(chat);
@@ -32,37 +41,95 @@ void handle_chat(char * command, char ** params, int len){
     
     connection_data * c;
     
-    /* build message in some ways */
+    /* TODO build message with command + params of find it somewhere */
+    
     char * message;
+    char * response;
+
+    int port;
 
     /* quit the chat */    
-    if(strcmp(command, "\\q") == 0){
-        
-        if(talking_to)
-            free(talking_to);
-        
+    if(strcmp(command, "\\q") == 0){     
         talking_to = NULL;
         return;
     }
 
     /* print list of online users */    
+
     if(strcmp(command, "\\u") == 0){
+        
+        if(len != 0){
+            printf("error wrong format, type:\n\n\\u\n\n");
+            return;
+        }
+
+        c = connection(default_port, SERVER_NAME);
+
+        response = make_request(
+            c,
+            "list",
+            1
+        );
+        
+        if(response == NULL){
+            printf("error connectiong to the server\n");
+            return;
+        }
+
+        printf("%s\n", response);
 
         return;
     }
 
-    /* print add user */    
+    /* add user */    
+    
     if(strcmp(command, "\\a") == 0){
 
-        return;
+        /* TOOD create group chat with maybe an id*/  
+        
+        c = find_connection_by_username(params[0]);
+
+        if(c != NULL){
+            add_to_chat(c);
+            return;
+        }
+        
+        sprintf(buf, "get_user_port|%s\0", params[0]);
+
+        c = connection(default_port, SERVER_NAME);
+        
+        response = make_request(c, buf, 1);
+
+        if(response == NULL){
+            printf("error connectiong to the server\n");
+            return 0;
+        }
+
+        if(strcmp(response, "error") == 0){
+            printf("sorry there is no one by the name of %s!\n", params[0]);
+            return 0;
+        }
+
+        port = atoi(response);
+
+        if(port == -1){
+            printf("sorry %s is offline\n", params[0]);
+            return 0;
+        }
+
+        c = connection(params[0], port);
+        add_to_chat(c);
+
+        return 0;
     }
 
     /* write a message */
 
-
     if(talking_to != NULL){
         
-        request(
+        /* message|from|to|message|timestamp??? */
+
+        make_request(
             talking_to,
             message,
             0
@@ -76,20 +143,15 @@ void handle_chat(char * command, char ** params, int len){
     if(c == NULL){
         
         printf("both the server and %s are offline\n", talking_to);
-
-        if(talking_to)
-            free(talking_to);
         talking_to = NULL;
         return;
     }
     
-    /* buld message with "message" command + params */
+    /* buld message with message|from|to|message|timestamp??? */
     
-    /* send message to server */
-
-    request(
+    make_request(
         c,
-        params[0],
+        message,
         0
     );
 }
@@ -98,7 +160,6 @@ int input(char * command, char ** params, int len){
     
     int res, port, i;
     char * response;
-    char buf[BUF_LEN];
     connection_data * c;
 
     if(command == NULL)
@@ -125,11 +186,10 @@ int input(char * command, char ** params, int len){
         
         c = connection(default_port, SERVER_NAME);
         
-        response = request(c, buf, 1);
+        response = make_request(c, buf, 1);
 
         if(response == NULL){
             printf("error connectiong to the server\n");
-            
             return 0;
         }
 
@@ -167,7 +227,7 @@ int input(char * command, char ** params, int len){
         
         c = connection(default_port, SERVER_NAME);
         
-        response = request(c, buf, 1);
+        response = make_request(c, buf, 1);
 
         if(response == NULL){
             printf("error connectiong to the server\n");
@@ -175,6 +235,10 @@ int input(char * command, char ** params, int len){
         }
 
         if(strcmp(response, "ok") == 0){
+
+            current_username = malloc(sizeof(params[0]) + sizeof(char));
+            strcpy(current_username, params[0]);
+
             printf("congratulations {%s}, you're logged in!\n", params[0]);
             return 0;
         }
@@ -183,21 +247,78 @@ int input(char * command, char ** params, int len){
             return 0;
         }
 
+        free(response);
         printf("request error\n");
 
         return 0;
     }
 
-    if(strcmp(command, "hanging") == 0){
-        
+    if(current_username == NULL){
+        printf("you must do the login before doing any action beside login or signup\n");
         return 0;
     }
+
+    /* hanging */
+
+    if(strcmp(command, "hanging") == 0){
+        
+        if(len != 0){
+            printf("error wrong format, type:\n\nhanging\n\n");
+            return 0;
+        }
+
+        c = connection(default_port, SERVER_NAME);
+        
+        sprintf(buf, "hanging|%s", current_username);
+        
+        response = make_request(
+            c, 
+            buf, 
+            1
+        );
+
+        if(response == NULL){
+            printf("error connectiong to the server\n");
+            return 0;
+        }
+
+        printf("%s", response);
+
+        return 0;
+    }
+
+    /* show username*/
 
     if(strcmp(command, "show") == 0){
         
+        if(len != 1){
+            printf("error wrong format, type:\n\nshow username\n\n");
+            return 0;
+        }
+
+        c = connection(default_port, SERVER_NAME);
+        
+        sprintf(buf, "hanging|%s|%s", params[0], current_username);
+        
+        response = make_request(
+            c, 
+            buf, 
+            1
+        );
+        
+        if(response == NULL){
+            printf("error connectiong to the server\n");
+            return 0;
+        }
+
+        /* TODO
+            add messages to chat
+        */
+        
         return 0;
     }
 
+    /* chat username */
     if(strcmp(command, "chat") ==  0){
 
         if(len != 1){
@@ -205,22 +326,26 @@ int input(char * command, char ** params, int len){
             return 0;
         }
         
-        sprintf(buf, "%s|%s\0", command, params[0]);
         
         /* check if you are already connected with {username} */
+
         c = find_connection_by_username(params[0]);
         
         /* if yes open the chat with {username} */
+
         if(c != NULL){
-            
-            open_chat(c);
+            talking_to = c;
+            open_chat(params[0]);
             return 0;
         }
 
+        sprintf(buf, "get_user_port|%s\0", params[0]);
+
         /* if no asks to the server */
+        
         c = connection(default_port, SERVER_NAME);
         
-        response = request(c, buf, 1);
+        response = make_request(c, buf, 1);
 
         if(response == NULL){
             printf("error connectiong to the server\n");
@@ -235,34 +360,38 @@ int input(char * command, char ** params, int len){
         port = atoi(response);
 
         /* peer offline */
-
         if(port == -1){
-            
-            /* build fake connection */
-            
-            open_chat(NULL);
+            open_chat(params[0]);
             return 0;
         }
 
         c = connection(port, params[0]);
 
-        open_chat(c);
-
+        talking_to = c;
+        open_chat(c->username);
         return 0;
     }
 
+    /* share file_path */
+
     if(strcmp(command, "share") == 0){
+        
+        /* TODO */
         
         return 0;
     }
 
+    /* out */
     if(strcmp(command, "out") == 0){
         
         /* TODO needs to always work even 
             if he doesn't write out
             server is offline 
         */
-
+        if(current_username)
+            free(current_username);
+        current_username = NULL;
+        
         close_all_connections();
         return 1;
     }
@@ -274,9 +403,40 @@ int input(char * command, char ** params, int len){
 
 char * get_request(char * request, char ** params, int len){
     
+    /* message|from|to|message|timestamp??? */
+    
+    if(strcmp(request, "message") == 0){
+
+        /* TODO decide this*/
+
+        if(len != 3){
+            return NULL;
+        }
+        if(talking_to == NULL){
+            // notify
+            return NULL;
+        }
+
+        if(strcmp(params[0], talking_to->username) != 0 ){
+            // notify
+            return NULL;
+        }
+        
+        printf("%s := %s\n", params[1], params[2]);
+
+        return NULL;
+    }
+
+    if(strcmp(request, "has_read") == 0){
+        /* TODO 
+            something in a function cause you could have to this in login or chat
+        */
+    }
+
 }
 
 /* ./client <port> */
+
 int main(int argc, char* argv[]){
     
     if(argc != 2){

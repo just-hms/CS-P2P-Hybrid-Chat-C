@@ -1,5 +1,6 @@
 #include "./../lib/endpoint.h"
 #include "./../lib/utils.h"
+#include "./../lib/connection.h"
 
 /* TODO io.h ???*/
 
@@ -44,10 +45,13 @@ int input(char * command, char ** params, int len){
 
 char * get_request(char * request, char ** params, int len){
     
+    connection_data * c;
     int res, port;
 
     /* TODO maybe fix this*/
     char buf[BUF_LEN];
+
+    char * response;
     
     if(request == NULL)
         return;
@@ -83,7 +87,7 @@ char * get_request(char * request, char ** params, int len){
         return build_string("wrong_user_or_password");
     }
 
-    if(strcmp(request, "chat") == 0){
+    if(strcmp(request, "get_user_port") == 0){
         
         if(len != 1)
             return build_string("error");
@@ -97,6 +101,51 @@ char * get_request(char * request, char ** params, int len){
         sprintf(buf, "%d", port);
 
         return build_string(buf);
+    }
+
+    if(strcmp(request, "hanging") == 0){
+        
+        if(len != 1)
+            return build_string("error");
+            
+        return user_hanging(params[0]);
+    }
+
+    if(strcmp(request, "show") == 0){
+        
+        if(len != 2)
+            return build_string("error");
+        
+        if(!user_exists(params[0]))
+            return build_string("error");
+
+        response = user_show(params[0], params[1]);
+
+        /* notify sender that the receiver has read his messages */
+        
+        port = user_get_session(params[0]);
+        
+        if(port == -1){
+            
+            /* TODO sender is offline */
+            
+            return response;
+        }
+        
+        /* TODO flush shown messages */
+
+        c = connection(port, params[0]);
+        
+        sprintf(buf, "has_read|%s", params[1]);
+        
+        make_request(
+            c,
+            buf,
+            0
+        );
+        
+        return response;
+        
     }
 }
 
