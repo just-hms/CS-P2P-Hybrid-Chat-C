@@ -7,12 +7,11 @@ time_t get_current_time(){
     return time(NULL);
 }
 
-time_t string_to_time(char * time_string){
-
-    time_t rawtime;
-    sscanf(time_string, "%ld", rawtime);
-
-    return rawtime;
+char * time_to_string(time_t t){
+    char * buf;
+    buf = malloc(21 * sizeof(char));
+    strftime(buf, 20, "%Y-%m-%d %H:%M:%S", localtime(&t));
+    return buf;
 }
 
 char * user_find(char * username){
@@ -74,6 +73,7 @@ int user_add(char * username, char * password){
 }
 
 int user_login(char * username, char * password){
+    
     FILE * fp;
     char * user_record;
     char * buf;
@@ -82,7 +82,6 @@ int user_login(char * username, char * password){
     
     if(user_record == NULL)
         return 0;
-
 
     buf = malloc((strlen(username) + strlen(password) + 4) * sizeof(char));
         
@@ -106,7 +105,7 @@ int user_get_session(char * username){
     int len = 0;
     
     time_t start, end; 
-    int i, port;
+    int i, port, sd;
 
     char * record;
 
@@ -135,7 +134,7 @@ int user_get_session(char * username){
     if(record == NULL)
         return -1;
     
-    sscanf(record, "%s %d %ld %ld", username, &port, &start, &end);
+    sscanf(record, "%s %d %d %ld %ld", username, &sd, &port, &start, &end);
 
     free(record);
 
@@ -145,7 +144,47 @@ int user_get_session(char * username){
     return -1;
 }
 
-void user_start_session(char * username, int port){
+char * user_get_username_by_sd(int sd_to_find){
+    
+    FILE * fp;
+    char * line = NULL;
+    int len = 0;
+    
+    time_t start, end; 
+    int i, port, sd;
+
+    char username[50];
+    char * username_found = NULL;
+
+    fp = fopen(SESSION_FILE, "r");
+    if (fp == NULL)
+        return NULL;
+
+    while (getline(&line, &len, fp) != -1) {
+        
+        replace_n_with_0(line);
+
+        sscanf(line, "%s %d %d %ld %ld", username, &sd,  &port, &start, &end);
+
+        if(sd == sd_to_find){
+            
+            if(username_found == NULL)
+                username_found = malloc(50 * sizeof(char));
+            
+            strcpy(username_found, username);
+            continue;
+        }
+    }
+
+    fclose(fp);
+
+    if (line)
+        free(line);
+
+    return username_found;
+}
+
+void user_start_session(char * username, int port, int sd){
     
     FILE * fp;
 
@@ -158,8 +197,9 @@ void user_start_session(char * username, int port){
     
     fprintf(
         fp,
-        "%s %d %ld -1\n", 
+        "%s %d %d %ld -1\n", 
         username, 
+        sd,
         port,
         get_current_time()
     );
@@ -167,7 +207,7 @@ void user_start_session(char * username, int port){
     fclose(fp);
 }
 
-void user_end_session(char * username){
+void user_end_session(char * to_remove, time_t t){
     
     FILE * fPtr;
     FILE * fTemp;
@@ -177,7 +217,9 @@ void user_end_session(char * username){
 
     time_t start, end;
 
-    int port;
+    char * username[50];
+
+    int port, sd;
 
     fPtr  = fopen(SESSION_FILE, "r");
     fTemp = fopen(TMP_FILE, "w"); 
@@ -188,21 +230,20 @@ void user_end_session(char * username){
 
     while ((fgets(buf, BUF_LEN, fPtr)) != NULL){
 
-        if(starts_with(buf, username)){
+        if(starts_with(buf, to_remove)){
 
-            replace_n_with_0(buf);
-
-            sscanf(buf, "%s %d %ld %ld", username, &port, &start, &end);
+            sscanf(buf, "%s %d %d %ld %ld", username, &sd,  &port, &start, &end);
 
             if(end == -1){
 
                 fprintf(
                     fTemp, 
-                    "%s %d %ld %ld\n", 
+                    "%s %d %d %ld %ld\n", 
                     username, 
+                    sd,
                     port, 
                     start, 
-                    get_current_time()
+                    t
                 );
 
                 continue;
@@ -244,7 +285,7 @@ char * user_hanging(char * receiver){
     /* TODO */
 }
 
-char * user_get_online_list(){
+char * user_get_online_list(int timestamp_and_port){
     
     FILE * fp;
     char * line = NULL;
@@ -252,9 +293,10 @@ char * user_get_online_list(){
     
     time_t start, end;
 
-    int i, port, count;
+    int i, port, count, sd;
 
     char * buf;
+    char * time_string = NULL;
 
     /* FIX ME*/
 
@@ -270,7 +312,7 @@ char * user_get_online_list(){
         
         replace_n_with_0(line);
 
-        sscanf(line, "%s %d %ld %ld", username, &port, &start, &end);
+        sscanf(line, "%s %d %d %ld %ld", username, &sd, &port, &start, &end);
         
         if(end == -1)
             count++;        
@@ -280,18 +322,33 @@ char * user_get_online_list(){
         return NULL;
 
     rewind(fp);
-    buf = malloc((sizeof(char) + 2) * count);
+    
+    if(timestamp_and_port)
+        buf = malloc((sizeof(char) + 20 + 4 + 5) * count);
+    else
+        buf = malloc((sizeof(char) + 2) * count);
     
     buf[0] = '\0';
 
     while (getline(&line, &len, fp) != -1) {
         replace_n_with_0(line);
 
-        sscanf(line, "%s %d %ld %ld", username, &port, &start, &end);
+        sscanf(line, "%s %d %d %ld %ld", username, &sd,  &port, &start, &end);
 
         if(end == -1){
-            strcat(buf, username);
-            strcat(buf, "\n");
+
+            if(timestamp_and_port){
+                
+                time_string = time_to_string(start);
+                sprintf(line, "%s*%s*%d\n", username, time_string, port);
+                strcat(buf, line);
+                free(time_string);
+
+            }else{
+                
+                strcat(buf, username);
+                strcat(buf, "\n");
+            }
         }
     }   
 
@@ -301,4 +358,42 @@ char * user_get_online_list(){
         free(line);
 
     return buf;
+}
+
+
+void save_out_time(char * username){
+	
+	FILE *fd;
+    
+    fd = fopen(username, "w");
+
+    if(fd == NULL)
+        return;
+
+	fprintf(fd, "%ld", get_current_time());
+
+    if(fd != NULL)
+	    fclose(fd); 
+}
+
+time_t get_out_time(char * username){
+    time_t out_time;
+
+    FILE * fd;
+    
+    fd = fopen(username, "r");
+
+    if(fd == NULL)
+        return -1;
+    
+    fscanf(fd, "%ld", &out_time);
+
+    if(fd != NULL)
+	    fclose(fd);
+
+    return out_time;
+}
+
+void clear_out_time(char * username){
+    remove(username);
 }

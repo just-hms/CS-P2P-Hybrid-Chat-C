@@ -11,12 +11,16 @@ int user_login(char *, char *);
 int user_exists(char *);
 
 int user_get_session(char *);
-void user_start_session(char *, int);
-void user_end_session(char *);
+void user_start_session(char *, int, int);
+void user_end_session(char *, time_t);
 char * user_show(char *, char *);
 char * user_hanging(char *);
-char * user_get_online_list();
+char * user_get_online_list(int);
 
+char * user_get_username_by_sd(int);
+
+void save_out_time(char * username);
+time_t get_out_time(char * username);
 
 char * get_chat(char *);
 

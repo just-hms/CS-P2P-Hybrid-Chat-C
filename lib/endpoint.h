@@ -1,9 +1,5 @@
 #include "utils.h"
 #include "io.h"
 
-void endpoint(int, int(*)(char *, char **, int), char* (*)(char*, char **, int), int);
-
-/* remove these ??? */
-int build_listener(int);
-void accept_new_connection(fd_set *, int *, int);
-void close_connection(int, fd_set *, int);
+void endpoint(int, int(*)(char *, char **, int), char* (*)(char*, char **, int, int), void(*)(int), int);
+void add_new_connection(int);

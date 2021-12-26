@@ -1,4 +1,3 @@
-#include "./../lib/endpoint.h"
 #include "./../lib/connection.h"
 #include "./../lib/io.h"
 
@@ -68,7 +67,7 @@ void handle_chat(char * command, char ** params, int len){
             return;
         }
 
-        c = connection(default_port, SERVER_NAME);
+        c = connection(default_port);
 
         response = make_request(
             c,
@@ -90,7 +89,17 @@ void handle_chat(char * command, char ** params, int len){
     
     if(strcmp(command, "\\a") == 0){
 
-        /* TOOD create group chat with maybe an id */  
+        if(len != 1){
+            printf("error wrong format, type:\n\n\\a username\n\n");
+            return;
+        }
+
+        /* TODO create group chat with maybe an id */  
+        
+        if(strcmp(current_username, params[0]) ==  0){
+            printf("error can't chat with yourself\n");
+            return;
+        }
         
         c = find_connection_by_username(params[0]);
 
@@ -101,7 +110,7 @@ void handle_chat(char * command, char ** params, int len){
         
         sprintf(buf, "get_user_port|%s\0", params[0]);
 
-        c = connection(default_port, SERVER_NAME);
+        c = connection(default_port);
         
         response = make_request(c, buf, 1);
 
@@ -122,7 +131,10 @@ void handle_chat(char * command, char ** params, int len){
             return;
         }
 
-        c = connection(port, params[0]);
+        c = connection(port);
+        
+        /* TODO */
+        connection_set_username(c, params[0]);
         add_to_chat(c);
 
         return;
@@ -143,12 +155,11 @@ void handle_chat(char * command, char ** params, int len){
         return;
     }
         
-    c = connection(default_port, SERVER_NAME);
+    c = connection(default_port);
         
     if(c == NULL){
         
-        printf("both the server and %s are offline\n", talking_to);
-        talking_to = NULL;
+        printf("both the server and %s are offline\n", offline_username);
         return;
     }
     
@@ -192,7 +203,7 @@ int input(char * command, char ** params, int len){
                 
         default_port = (len == 3) ? atoi(params[2]) : default_port;
         
-        c = connection(default_port, SERVER_NAME);
+        c = connection(default_port);
         
         response = make_request(c, buf, 1);
 
@@ -232,12 +243,20 @@ int input(char * command, char ** params, int len){
             printf("error wrong format, type:\n\nin username password server_port\n\n");
             return 0;
         }
-
-        sprintf(buf, "%s|%s|%s|%d\0", command, params[0], params[1], current_port);
         
+        sprintf(
+            buf, 
+            "%s|%s|%s|%d|%ld\0", 
+            command, 
+            params[0], 
+            params[1], 
+            current_port,
+            get_out_time(params[0])
+        );
+    
         default_port = (len == 3) ? atoi(params[2]) : default_port;
         
-        c = connection(default_port, SERVER_NAME);
+        c = connection(default_port);
         
         response = make_request(c, buf, 1);
 
@@ -252,6 +271,8 @@ int input(char * command, char ** params, int len){
             strcpy(current_username, params[0]);
 
             printf("congratulations {%s}, you're logged in!\n", params[0]);
+
+            clear_out_time(params[0]);
             return 0;
         }
         
@@ -285,7 +306,7 @@ int input(char * command, char ** params, int len){
             return 0;
         }
 
-        c = connection(default_port, SERVER_NAME);
+        c = connection(default_port);
         
         sprintf(buf, "hanging|%s", current_username);
         
@@ -314,7 +335,7 @@ int input(char * command, char ** params, int len){
             return 0;
         }
 
-        c = connection(default_port, SERVER_NAME);
+        c = connection(default_port);
         
         sprintf(buf, "hanging|%s|%s", params[0], current_username);
         
@@ -343,7 +364,11 @@ int input(char * command, char ** params, int len){
             printf("error wrong format, type:\n\nchat username\n\n");
             return 0;
         }
-        
+
+        if(strcmp(current_username, params[0]) ==  0){
+            printf("error can't chat with yourself\n");
+            return;
+        }
         
         /* check if you are already connected with {username} */
 
@@ -357,11 +382,11 @@ int input(char * command, char ** params, int len){
             return 0;
         }
 
-        sprintf(buf, "get_user_port|%s\0", params[0]);
-
         /* if no asks to the server */
+
+        sprintf(buf, "get_user_port|%s\0", params[0]);
         
-        c = connection(default_port, SERVER_NAME);
+        c = connection(default_port);
         
         response = make_request(c, buf, 1);
 
@@ -378,12 +403,15 @@ int input(char * command, char ** params, int len){
         port = atoi(response);
 
         /* peer offline */
+
         if(port == -1){
+        
             open_chat(params[0]);
             return 0;
+        
         }
 
-        c = connection(port, params[0]);
+        c = connection(port);
 
         talking_to = c;
         open_chat(c->username);
@@ -401,17 +429,18 @@ int input(char * command, char ** params, int len){
 
     /* out */
     if(strcmp(command, "out") == 0){
-        
-        /* TODO 
-            needs to always work even 
-            if he doesn't write out
-            server is offline 
-        */
+
+        c = connection(default_port);
+
+        if(c == NULL){
+            save_out_time(current_username);
+        }
 
         if(current_username != NULL)
             free(current_username);
+
         current_username = NULL;
-        
+
         close_all_connections();
         return 1;
     }
@@ -421,7 +450,7 @@ int input(char * command, char ** params, int len){
     return 0;
 }
 
-char * get_request(char * request, char ** params, int len){
+char * get_request(char * request, char ** params, int len, int sd){
     
     /* message|from|to|message|timestamp??? */
     
@@ -457,6 +486,12 @@ char * get_request(char * request, char ** params, int len){
 
 /* ./client <port> */
 
+void disconnected(int sd){
+    
+    /* check this */
+    remove_connection(sd);
+}
+
 int main(int argc, char* argv[]){
     
     if(argc != 2){
@@ -470,6 +505,7 @@ int main(int argc, char* argv[]){
         current_port, 
         input, 
         get_request, 
+        disconnected,
         0
     );
 }

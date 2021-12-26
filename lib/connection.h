@@ -2,10 +2,10 @@
 #include <stdio.h>
 
 #include "utils.h"
+#include "endpoint.h"
 
 
 struct connection_data{
-    
     int sd;
     int port;
     char username[50];
@@ -13,15 +13,16 @@ struct connection_data{
 
 } typedef connection_data;
 
+connection_data * connection(int);
+void connection_set_master(fd_set *);
 
-connection_data * connection(int, char *);
+
 char * make_request(connection_data *, char *, int);
+
+/* TODO these */
+
 connection_data * find_connection_by_username(char *);
-void close_all_connections();
 connection_data * find_connection_by_port(int);
+connection_data * find_connection_by_sd(int);
 
-/* remove these ???*/
-
-connection_data * add_connection(int, int, char*);
-void remove_connection(int);
-int count_connections();
+void close_all_connections();

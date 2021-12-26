@@ -1,6 +1,8 @@
 #include "endpoint.h"
 
 int verbose;
+fd_set master;
+int fdmax;
 
 int build_listener(int port){
 
@@ -25,7 +27,7 @@ int build_listener(int port){
     return listener;
 }
 
-void accept_new_connection(fd_set * master, int * fdmax, int listener){
+void accept_new_connection(int listener){
     
     struct sockaddr_in cl_addr;
     int newfd, addrlen;
@@ -34,26 +36,36 @@ void accept_new_connection(fd_set * master, int * fdmax, int listener){
     
     newfd = accept(listener, (struct sockaddr *)&cl_addr, &addrlen);
     
-    FD_SET(newfd, master); 
-    
+    add_new_connection(newfd);
+
     if(verbose)
         printf("new sd := %d\n", newfd);
 
-    if(newfd > *fdmax){ 
-        *fdmax = newfd; 
+}
+
+void add_new_connection(int sd){
+    
+    FD_SET(sd, &master); 
+
+    /* TODO call connect or something similiar */
+
+    if(sd > fdmax){ 
+        fdmax = sd; 
     }
 }
 
-void close_connection(int sd, fd_set * master, int corrupted){
+void close_connection(int sd, int corrupted, void (*__closed_connection)(int)){
+    __closed_connection(sd);
     if(!corrupted)
         close(sd);
-    FD_CLR(sd, master);
+    FD_CLR(sd, &master);
 }
 
-void endpoint(int port, int(*__input)(char *, char **, int), char* (*__get_request)(char*, char **, int), int verbose_param){
+void endpoint(int port, int(*__input)(char *, char **, int), char* (*__get_request)(char*, char **, int, int), void (*__closed_connection)(int), int verbose_param){
     
-    int res, listener, i, fdmax, params_len, j; 
-    fd_set master, read_fds;
+    int res, listener, i, params_len, j; 
+    fd_set read_fds;
+
 
     char * answer, * command;
     char * params[MAX_PARAMS_LEN];
@@ -85,14 +97,13 @@ void endpoint(int port, int(*__input)(char *, char **, int), char* (*__get_reque
         select(fdmax + 1, &read_fds, NULL, NULL, NULL);
 
         for(i = 0; i <= fdmax; i++) {  
-
             if(!FD_ISSET(i, &read_fds))
                 continue;
             
             if(i == listener) {
                 if(verbose)
                     printf("new connection asked\n");
-                accept_new_connection(&master, &fdmax, listener);
+                accept_new_connection(listener);
                 continue;
             } 
 
@@ -147,7 +158,7 @@ void endpoint(int port, int(*__input)(char *, char **, int), char* (*__get_reque
             if(res == 0){
                 if(verbose)
                     printf("[%d] closed connection while receiving message\n", i);
-                close_connection(i, &master, 1);
+                close_connection(i, 1, __closed_connection);
                 continue;
             }
 
@@ -169,7 +180,7 @@ void endpoint(int port, int(*__input)(char *, char **, int), char* (*__get_reque
 
             /* get command */
             
-            answer = __get_request(command, params, params_len);
+            answer = __get_request(command, params, params_len, i);
 
             if(answer == NULL)
                 continue;
@@ -179,7 +190,7 @@ void endpoint(int port, int(*__input)(char *, char **, int), char* (*__get_reque
             if(res < 0){
                 if(verbose)
                     printf("[%d] connection error while sending message\n", i);
-                close_connection(i, &master, 0);
+                close_connection(i, 0, __closed_connection);
                 continue;
             }
 
@@ -187,7 +198,7 @@ void endpoint(int port, int(*__input)(char *, char **, int), char* (*__get_reque
                 continue;
             
             printf("[%d] closed connection while sending message\n", i);
-            close_connection(i, &master, 0);
+            close_connection(i, 0, __closed_connection);
 
         }
     }

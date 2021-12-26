@@ -1,7 +1,5 @@
-#include "./../lib/endpoint.h"
 #include "./../lib/utils.h"
 #include "./../lib/connection.h"
-
 
 #include "./../lib/io.h"
 
@@ -10,7 +8,7 @@ void help(){
     printf("\tlist --> show user list \n");
     printf("\tesc --> shut down the server\n");
 
-    printf("\noptionals:\n\n");
+    printf("optionals:\n");
     printf("\tcls --> clear the screen\n\n");
 }
 
@@ -28,7 +26,7 @@ int input(char * command, char ** params, int len){
 
     if(strcmp(command, "list") == 0){
         
-        user_list = user_get_online_list();
+        user_list = user_get_online_list(1);
         
         if(user_list == NULL){
             printf("it's all quiet here...\n", user_list);
@@ -53,10 +51,11 @@ int input(char * command, char ** params, int len){
     return 0;
 }
 
-char * get_request(char * request, char ** params, int len){
+char * get_request(char * request, char ** params, int len, int sd){
     
     connection_data * c;
     int res, port;
+    time_t t;
 
     /* FIX ME */
 
@@ -82,13 +81,22 @@ char * get_request(char * request, char ** params, int len){
 
     if(strcmp(request, "in") == 0){
         
-        if(len != 3)
+        if(len != 4)
             return build_string("error");
 
         if(user_login(params[0], params[1])){
             
             /* TEST */
             
+            sscanf(params[3], "%ld", &t);
+
+            if(t != -1){
+                user_end_session(
+                    params[0], 
+                    t
+                );
+            }
+
             port = user_get_session(params[0]);
             
             if(port != -1)
@@ -96,8 +104,9 @@ char * get_request(char * request, char ** params, int len){
 
             user_start_session(
                 params[0],          /* username */
-                atoi(params[2])     /* user_port */
-            );
+                atoi(params[2]),    /* user_port */
+                sd                  /* sd */
+            );  
 
             return build_string("ok");
         }
@@ -152,22 +161,14 @@ char * get_request(char * request, char ** params, int len){
         
         /* TODO flush shown messages */
 
-        c = connection(port, params[0]);
-        
-        sprintf(buf, "has_read|%s", params[1]);
-        
-        make_request(
-            c,
-            buf,
-            0
-        );
+        /* send notification to sender */
         
         return response;   
     }
     
     if(strcmp(request, "list") == 0){
         
-        response = user_get_online_list();
+        response = user_get_online_list(0);
         
         /* should never happen cause he's online */
         
@@ -182,11 +183,32 @@ char * get_request(char * request, char ** params, int len){
 
 /* ./server [port] */
 
+void disconnected_if_online(int sd){
+
+    char * username;
+
+    username = user_get_username_by_sd(sd);
+    
+    if(username == NULL)
+        return;
+    
+    if(user_get_session(username) == -1){
+        free(username);
+        return;
+    }
+
+    user_end_session(
+        username, 
+        get_current_time()
+    );
+
+    free(username);    
+}
 
 int main(int argc, char* argv[]){
     
     int port;
-
+    
     port = (argc == 2) ? atoi(argv[1]) : 4242;
     
     system("clear");
@@ -199,6 +221,7 @@ int main(int argc, char* argv[]){
         port, 
         input, 
         get_request, 
+        disconnected_if_online,
         1
     );
 }

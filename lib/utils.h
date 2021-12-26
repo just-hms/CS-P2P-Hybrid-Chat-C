@@ -22,8 +22,6 @@ int starts_with(char *, char *);
 char * build_string(char *);
 char * replace_n_with_0(char *);
 
-
-
 /* testing */
 
 void params_test(char *, char **, int);
