@@ -1,6 +1,6 @@
 CC=gcc
 SOURCES=./lib/utils.c  ./lib/endpoint.c ./lib/io.c
-CFLAGS=-ansi 
+CFLAGS=-ansi -g
 
 # -Wall
 

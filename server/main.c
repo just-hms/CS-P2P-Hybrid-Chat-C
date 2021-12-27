@@ -135,8 +135,17 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         
         c = find_connection_by_username(params[1]);
         
-        if(c == NULL)
+        if(c == NULL){
+            
+            /* buffer the message */
+
+            printf("buffering := %s\n", raw);
+
+            sscanf(params[3], "%ld", &t);
+            user_buffer_message(params[0], params[1], params[2], t);
+            
             return build_string("offline");
+        }
 
         /* forward the message */
 

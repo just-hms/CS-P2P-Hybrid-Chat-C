@@ -360,6 +360,9 @@ void user_print_chat(char * receiver, char * sender){
 
 void user_buffer_has_read(char * receiver, char * sender){
     /* TODO */
+}
+void user_buffer_message(char * sender, char * receiver, char * message, time_t t){
+    /* TODO */
 
 }
 
@@ -399,7 +402,7 @@ void user_received_message(char * receiver, char * sender, char * message, time_
     if (fp == NULL)
         return;
 
-    fprintf(fp,"%s:= %s %ld\n", sender, message, timestamp);
+    fprintf(fp,"%s %s %ld\n", sender, message, timestamp);
     
     fclose(fp);
 }

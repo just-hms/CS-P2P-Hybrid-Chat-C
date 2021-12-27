@@ -6,8 +6,8 @@
 #define SESSION_FILE "./server/sessions.txt"
 #define TMP_FILE "./server/session_tmp.txt"
 
-#define OUT_PREFIX "./client/out"
-#define CHAT_PREFIX "./server/chat"
+#define OUT_PREFIX "./client/test/out"
+#define CHAT_PREFIX "./client/test/chat"
 
 time_t get_current_time();
 
@@ -26,6 +26,7 @@ char * user_hanging(char *);
 char * user_get_online_list(int);
 
 void user_buffer_has_read(char *, char *);
+void user_buffer_message(char *, char *, char *, time_t);
 
 /* CLIENT */
 

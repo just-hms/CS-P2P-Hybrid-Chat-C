@@ -186,8 +186,15 @@ void handle_chat(char * command, char ** params, int len, char * raw){
 
     connection_set_username(c->sd, talking_to);
     
-    user_sent_message(current_username, talking_to, raw, get_current_time(), 1);
+    sprintf(buf, "im|%s\0", current_username);
 
+    make_request(
+        c,
+        buf,
+        0
+    );
+
+    user_sent_message(current_username, talking_to, raw, get_current_time(), 1);
 }
 
 int input(char * command, char ** params, int len, char * raw){
@@ -428,9 +435,13 @@ int input(char * command, char ** params, int len, char * raw){
 char * get_request(char * request, char ** params, int len, int sd, char * raw){
     
     time_t t;
-    
+
+    printf("%s\n", raw);
     /* message|from|to|message|timestamp??? */
-    
+    if(request == NULL){
+        return NULL;
+    }
+
     if(strcmp(request, "message") == 0){
 
         if(len != 4){
@@ -465,6 +476,18 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         if(in_chat){
             open_chat(talking_to);
         }
+        
+        return NULL;
+    }
+
+    if(strcmp(request, "im") == 0){
+
+        if(len != 1)
+            return NULL;
+
+        connection_set_username(sd, params[0]);
+
+        return NULL;
     }
 
 }
@@ -472,10 +495,13 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 /* ./client <port> */
 
 void disconnected(int sd){
+    
     connection_data * c;
 
     c = find_connection_by_sd(sd);
 
+    printf("[%d] disconnected\n", c->sd);
+    
     if(c == NULL || c->port != default_port){
         return;
     }    

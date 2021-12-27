@@ -255,7 +255,7 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
             /* get command */   
 
             raw_message = malloc(strlen(buf) * sizeof(char) + 1);
-            strcpy(raw_message, buf);       
+            strcpy(raw_message, buf); 
             
             command = strtok(buf, "|");
             params_len = 0;
@@ -268,16 +268,21 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
             params_len--;
 
             /* get command */
-            
+                        
             answer = __get_request(command, params, params_len, i, raw_message);
 
             free(raw_message);
-
+            
             if(answer == NULL)
                 continue;
             
+            printf("%d\n", i);            
+            printf("%s\n", answer);            
+
             res = send_message(i, answer); 
-    
+
+            printf("kek %d\n", res);            
+
             if(res < 0){
                 if(verbose)
                     printf("[%d] connection error while sending message\n", i);
