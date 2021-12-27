@@ -6,6 +6,7 @@
         "string_view": "c",
         "socket.h": "c",
         "connection.h": "c",
-        "endpoint.h": "c"
+        "endpoint.h": "c",
+        "io.h": "c"
     }
 }

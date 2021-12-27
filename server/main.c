@@ -1,18 +1,22 @@
 #include "./../lib/utils.h"
-#include "./../lib/connection.h"
+#include "./../lib/endpoint.h"
 
 #include "./../lib/io.h"
 
+int port;
+
 void help(){
+    printf("server listening... :%d\n\n", port);
+    printf("Type a command:\n");
     printf("\thelp --> show commands details\n");
     printf("\tlist --> show user list \n");
     printf("\tesc --> shut down the server\n");
 
     printf("optionals:\n");
-    printf("\tcls --> clear the screen\n\n");
+    printf("\tcls --> clear the screen\n");
 }
 
-int input(char * command, char ** params, int len){
+int input(char * command, char ** params, int len, char * raw){
     
     char * user_list;
 
@@ -21,18 +25,23 @@ int input(char * command, char ** params, int len){
     }
 
     if(strcmp(command, "esc") == 0){
+        close_all_connections();
         return 1;
     }
 
     if(strcmp(command, "list") == 0){
         
+        /* TODO doesn't work */
+
         user_list = user_get_online_list(1);
         
         if(user_list == NULL){
             printf("it's all quiet here...\n", user_list);
             return 0;
         }
+        
         printf("%s\n", user_list);
+
         free(user_list);
         return 0;
     }
@@ -51,18 +60,17 @@ int input(char * command, char ** params, int len){
     return 0;
 }
 
-char * get_request(char * request, char ** params, int len, int sd){
+char * get_request(char * request, char ** params, int len, int sd, char * raw){
     
     connection_data * c;
+    connection_data * c_1;
     int res, port;
     time_t t;
 
     /* FIX ME */
-
     char buf[BUF_LEN];
-
     char * response;
-    
+
     if(request == NULL)
         return;
 
@@ -86,8 +94,6 @@ char * get_request(char * request, char ** params, int len, int sd){
 
         if(user_login(params[0], params[1])){
             
-            /* TEST */
-            
             sscanf(params[3], "%ld", &t);
 
             if(t != -1){
@@ -102,10 +108,11 @@ char * get_request(char * request, char ** params, int len, int sd){
             if(port != -1)
                 return build_string("already_logged");    
 
+            connection_set_username(sd, params[0]);
+
             user_start_session(
                 params[0],          /* username */
-                atoi(params[2]),    /* user_port */
-                sd                  /* sd */
+                atoi(params[2])     /* user_port */
             );  
 
             return build_string("ok");
@@ -114,55 +121,81 @@ char * get_request(char * request, char ** params, int len, int sd){
         return build_string("wrong_user_or_password");
     }
 
-    if(strcmp(request, "get_user_port") == 0){
+    /* message|from|to|message|timestamp??? */
+
+    if(strcmp(request, "message") == 0){
         
-        if(len != 1)
+        if(len != 4)
             return build_string("error");
         
         /* if he doesn't exist error */
-        if(!user_exists(params[0]))
+
+        if(!user_exists(params[1]))
             return build_string("error");
         
-        port = user_get_session(params[0]);
+        c = find_connection_by_username(params[1]);
+        
+        if(c == NULL)
+            return build_string("offline");
 
+        /* forward the message */
+
+        printf("forwarding := %s\n", raw);
+
+        make_request(
+            c,
+            raw,
+            0
+        );
+
+        /* send ACK */
+        
+        port = user_get_session(c->username);
         sprintf(buf, "%d", port);
-
         return build_string(buf);
     }
 
     if(strcmp(request, "hanging") == 0){
         
-        if(len != 1)
+        if(len != 0)
             return build_string("error");
-            
-        return user_hanging(params[0]);
+        
+        c = find_connection_by_sd(sd);
+
+        if(c == NULL || !c->logged)
+            return build_string("error");
+        
+        return user_hanging(c->username);
     }
 
     if(strcmp(request, "show") == 0){
         
-        if(len != 2)
+        if(len != 1)
             return build_string("error");
         
-        if(!user_exists(params[0]))
+        c = find_connection_by_sd(sd);
+        
+        if(c == NULL || !c->logged)
             return build_string("error");
-
-        response = user_show(params[0], params[1]);
-
-        /* notify sender that the receiver has read his messages */
         
-        port = user_get_session(params[0]);
+        response = user_show(c->username, params[0]);
+
+        c_1 = find_connection_by_username(params[0]);
+
+        sprintf(buf, "has_read|%s|%s|%d", c->username, c_1->username, get_current_time());
         
-        if(port == -1){
-            
-            /* TODO sender is offline */
-            
+        if(c_1 == NULL){
+
+            user_buffer_has_read(c->username, c_1->username);
             return response;
         }
-        
-        /* TODO flush shown messages */
 
-        /* send notification to sender */
-        
+        make_request(
+            c_1,
+            buf,
+            0
+        );
+
         return response;   
     }
     
@@ -172,9 +205,8 @@ char * get_request(char * request, char ** params, int len, int sd){
         
         /* should never happen cause he's online */
         
-        if(response == NULL){
+        if(response == NULL)
             return build_string("it's all quiet here...");
-        }
 
         return response;
     }
@@ -185,35 +217,29 @@ char * get_request(char * request, char ** params, int len, int sd){
 
 void disconnected_if_online(int sd){
 
-    char * username;
+    connection_data * c;
 
-    username = user_get_username_by_sd(sd);
+    c = find_connection_by_sd(sd);
     
-    if(username == NULL)
+    if(c == NULL)
         return;
     
-    if(user_get_session(username) == -1){
-        free(username);
+    if(!c->logged){
         return;
     }
 
     user_end_session(
-        username, 
+        c->username, 
         get_current_time()
     );
 
-    free(username);    
 }
 
 int main(int argc, char* argv[]){
-    
-    int port;
-    
+     
     port = (argc == 2) ? atoi(argv[1]) : 4242;
     
     system("clear");
-
-    printf("server listening :%d\n\nType a command:\n\n", port);
 
     help();
 

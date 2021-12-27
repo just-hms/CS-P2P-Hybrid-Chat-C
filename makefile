@@ -1,5 +1,5 @@
 CC=gcc
-SOURCES=./lib/utils.c ./lib/connection.c  ./lib/endpoint.c ./lib/io.c
+SOURCES=./lib/utils.c  ./lib/endpoint.c ./lib/io.c
 CFLAGS=-ansi 
 
 # -Wall
