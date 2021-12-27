@@ -33,5 +33,5 @@ void user_print_chat(char *, char *);
 void user_sent_message(char *, char *, char*, time_t, int);
 int is_in_contacts(char *, char*);
 void user_received_message(char *, char *, char *, time_t);
-
+void user_has_read(char *, char *, time_t);
 

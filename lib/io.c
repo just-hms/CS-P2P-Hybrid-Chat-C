@@ -376,6 +376,10 @@ void user_received_message(char * receiver, char * sender, char * message, time_
 
 }
 
+void user_has_read(char * sender, char * receiver, time_t timestamp){
+
+}
+
 int is_in_contacts(char * owner, char* username){
     
     /* TODO */
