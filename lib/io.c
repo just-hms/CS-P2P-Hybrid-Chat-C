@@ -105,7 +105,7 @@ int user_get_session(char * username){
     int len = 0;
     
     time_t start, end; 
-    int i, port, sd;
+    int i, port;
 
     char * record;
 
@@ -134,7 +134,7 @@ int user_get_session(char * username){
     if(record == NULL)
         return -1;
     
-    sscanf(record, "%s %d %d %ld %ld", username, &sd, &port, &start, &end);
+    sscanf(record, "%s %d %ld %ld", username, &port, &start, &end);
 
     free(record);
 
@@ -144,47 +144,7 @@ int user_get_session(char * username){
     return -1;
 }
 
-char * user_get_username_by_sd(int sd_to_find){
-    
-    FILE * fp;
-    char * line = NULL;
-    int len = 0;
-    
-    time_t start, end; 
-    int i, port, sd;
-
-    char username[50];
-    char * username_found = NULL;
-
-    fp = fopen(SESSION_FILE, "r");
-    if (fp == NULL)
-        return NULL;
-
-    while (getline(&line, &len, fp) != -1) {
-        
-        replace_n_with_0(line);
-
-        sscanf(line, "%s %d %d %ld %ld", username, &sd,  &port, &start, &end);
-
-        if(sd == sd_to_find){
-            
-            if(username_found == NULL)
-                username_found = malloc(50 * sizeof(char));
-            
-            strcpy(username_found, username);
-            continue;
-        }
-    }
-
-    fclose(fp);
-
-    if (line)
-        free(line);
-
-    return username_found;
-}
-
-void user_start_session(char * username, int port, int sd){
+void user_start_session(char * username, int port){
     
     FILE * fp;
 
@@ -197,9 +157,8 @@ void user_start_session(char * username, int port, int sd){
     
     fprintf(
         fp,
-        "%s %d %d %ld -1\n", 
+        "%s %d %ld -1\n", 
         username, 
-        sd,
         port,
         get_current_time()
     );
@@ -219,7 +178,7 @@ void user_end_session(char * to_remove, time_t t){
 
     char * username[50];
 
-    int port, sd;
+    int port;
 
     fPtr  = fopen(SESSION_FILE, "r");
     fTemp = fopen(TMP_FILE, "w"); 
@@ -232,7 +191,7 @@ void user_end_session(char * to_remove, time_t t){
 
         if(starts_with(buf, to_remove)){
 
-            sscanf(buf, "%s %d %d %ld %ld", username, &sd,  &port, &start, &end);
+            sscanf(buf, "%s %d %ld %ld", username,  &port, &start, &end);
 
             if(end == -1){
 
@@ -240,7 +199,6 @@ void user_end_session(char * to_remove, time_t t){
                     fTemp, 
                     "%s %d %d %ld %ld\n", 
                     username, 
-                    sd,
                     port, 
                     start, 
                     t
@@ -293,7 +251,7 @@ char * user_get_online_list(int timestamp_and_port){
     
     time_t start, end;
 
-    int i, port, count, sd;
+    int i, port, count;
 
     char * buf;
     char * time_string = NULL;
@@ -312,7 +270,7 @@ char * user_get_online_list(int timestamp_and_port){
         
         replace_n_with_0(line);
 
-        sscanf(line, "%s %d %d %ld %ld", username, &sd, &port, &start, &end);
+        sscanf(line, "%s %d %ld %ld", username, &port, &start, &end);
         
         if(end == -1)
             count++;        
@@ -333,7 +291,7 @@ char * user_get_online_list(int timestamp_and_port){
     while (getline(&line, &len, fp) != -1) {
         replace_n_with_0(line);
 
-        sscanf(line, "%s %d %d %ld %ld", username, &sd,  &port, &start, &end);
+        sscanf(line, "%s %d %ld %ld", username,  &port, &start, &end);
 
         if(end == -1){
 
@@ -396,4 +354,29 @@ time_t get_out_time(char * username){
 
 void clear_out_time(char * username){
     remove(username);
+}
+
+
+void user_print_chat(char * receiver, char * sender){
+    /* TODO */
+    printf("todo\n");
+}
+
+void user_buffer_has_read(char * receiver, char * sender){
+    /* TODO */
+
+}
+
+void user_sent_message(char * sender, char * receiver, char * message, time_t timestamp, int is_receiver_online){
+    /* TODO */
+
+}
+
+void user_received_message(char * receiver, char * sender, char * message, time_t timestamp){
+
+}
+
+int is_in_contacts(char * owner, char* username){
+    /* TODO */
+    return 1;
 }
