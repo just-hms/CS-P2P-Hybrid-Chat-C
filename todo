@@ -27,3 +27,5 @@
 [] close old connection on login ???
 
 [] add cache in connections
+
+[] add prefix to out files

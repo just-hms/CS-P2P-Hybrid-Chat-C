@@ -135,9 +135,10 @@ void handle_chat(char * command, char ** params, int len, char * raw){
 
     sprintf(
         buf,
-        "message|%s|%s|%s",
+        "message|%s|%s|%s|%ld",
         current_username,
         offline_username,
+        replace_n_with_0(raw),
         get_current_time()
     );
 
@@ -163,11 +164,11 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         printf("sorry both the server and {%s} are offline...", offline_username);
         return;
     }
-    if(strcmp(response, "error")){
+    if(strcmp(response, "error") == 0){
         printf("error comunicating with the server", offline_username);
         return;
     }
-    if(strcmp(response, "offline")){
+    if(strcmp(response, "offline") == 0){
         user_sent_message(current_username, offline_username, raw, get_current_time(), 0);
         return;
     }
@@ -175,6 +176,11 @@ void handle_chat(char * command, char ** params, int len, char * raw){
     port = atoi(response);
     
     c = connection(port);
+
+    if(c == NULL){
+        user_sent_message(current_username, offline_username, raw, get_current_time(), 0);
+        return;
+    }
 
     connection_set_username(c->sd, offline_username);
     
@@ -377,12 +383,12 @@ int input(char * command, char ** params, int len, char * raw){
 
         if(strcmp(current_username, params[0]) ==  0){
             printf("error can't chat with yourself\n");
-            return;
+            return 0;
         }
         
         if(!is_in_contacts(current_username, params[0])){
             printf("error %s is not in your contacts\n", params[0]);
-            return;
+            return 0;
         }
 
         open_chat(params[0]);
@@ -441,7 +447,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
         if(in_chat == 0 || strcmp(params[0], offline_username) != 0){
             
-            printf("you received a message from {%s}", params[0]);
+            printf("you received a message from {%s}\n", params[0]);
             return NULL;
         }
 
