@@ -436,7 +436,6 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
     
     time_t t;
 
-    printf("%s\n", raw);
     /* message|from|to|message|timestamp??? */
     if(request == NULL){
         return NULL;
@@ -476,7 +475,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         if(in_chat){
             open_chat(talking_to);
         }
-        
+
         return NULL;
     }
 

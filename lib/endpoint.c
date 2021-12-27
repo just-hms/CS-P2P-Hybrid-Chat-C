@@ -275,13 +275,8 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
             
             if(answer == NULL)
                 continue;
-            
-            printf("%d\n", i);            
-            printf("%s\n", answer);            
 
             res = send_message(i, answer); 
-
-            printf("kek %d\n", res);            
 
             if(res < 0){
                 if(verbose)

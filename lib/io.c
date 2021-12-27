@@ -18,7 +18,6 @@ char * user_find(char * username){
     FILE * fp;
     char * line = NULL;
     int len = 0;
-    int read;
 
     int i;
 
@@ -26,7 +25,7 @@ char * user_find(char * username){
     if (fp == NULL)
         return NULL;
 
-    while ((read = getline(&line, &len, fp)) != -1) {
+    while (getline(&line, &len, fp) != -1) {
         
         if(!starts_with(username, line))
             continue;
@@ -354,8 +353,43 @@ void clear_out_time(char * username){
 }
 
 void user_print_chat(char * receiver, char * sender){
-    /* TODO */
-    printf("todo\n");
+    FILE * fp;
+    
+    char filename[50 + 50 + 20];
+    char sender_to_print [50];
+    char message [100];
+    char timestamp_string[50];
+    time_t timestamp;
+    char * line = NULL;
+    int len = 0;
+    int i;
+
+    sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, sender, receiver);
+
+    fp = fopen(filename, "r");
+    if (fp == NULL)
+        return;
+
+    while (getline(&line, &len, fp) != -1) {
+        
+        if(!starts_with("*", line))
+            continue;
+
+        sscanf(line, "%[^'|']|%[^'|']|%[^'|']", sender_to_print, message, timestamp_string);
+        
+        printf("%s %s\n", sender_to_print, message);
+        
+        fclose(fp);
+        return line;
+    }
+
+    fclose(fp);
+
+    if (line)
+        free(line);
+
+    return NULL;
+
 }
 
 void user_buffer_has_read(char * receiver, char * sender){
@@ -380,9 +414,9 @@ void user_sent_message(char * sender, char * receiver, char * message, time_t ti
         return;
 
     if(is_receiver_online)
-        fprintf(fp,"** %s %ld\n", message, timestamp);
+        fprintf(fp,"**|%s|%ld\n", message, timestamp);
     else
-        fprintf(fp,"* %s %ld\n", message, timestamp);
+        fprintf(fp,"*|%s|%ld\n", message, timestamp);
 
     fclose(fp);
 
@@ -402,7 +436,7 @@ void user_received_message(char * receiver, char * sender, char * message, time_
     if (fp == NULL)
         return;
 
-    fprintf(fp,"%s %s %ld\n", sender, message, timestamp);
+    fprintf(fp,"%s|%s|%ld\n", sender, message, timestamp);
     
     fclose(fp);
 }
