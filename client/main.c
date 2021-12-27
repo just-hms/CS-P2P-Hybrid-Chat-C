@@ -16,17 +16,21 @@ void add_to_chat(connection_data * c){
     /* TODO me*/
 }
 
+void refresh_chat(){
+    if(!in_chat)
+        return;
+    
+    system("clear");
+
+    printf("\n\nin chat with {%s}\n\n", talking_to);
+
+    user_print_chat(current_username, talking_to);
+}
 void open_chat(char * username){
     
     in_chat = 1;
-
     strcpy(talking_to, username);
-
-    system("clear");
-
-    printf("\n\nin chat with {%s}\n\n", username);
-
-    user_print_chat(current_username, username);
+    refresh_chat();
 }
 
 void handle_chat(char * command, char ** params, int len, char * raw){
@@ -151,6 +155,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
             0
         );
         user_sent_message(current_username, talking_to, raw, get_current_time(), 1);
+        refresh_chat();
         return;
     }
 
@@ -172,6 +177,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
     }
     if(strcmp(response, "offline") == 0){
         user_sent_message(current_username, talking_to, raw, get_current_time(), 0);
+        refresh_chat();
         return;
     }
 
@@ -181,6 +187,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
 
     if(c == NULL){
         user_sent_message(current_username, talking_to, raw, get_current_time(), 0);
+        refresh_chat();
         return;
     }
 
@@ -195,12 +202,14 @@ void handle_chat(char * command, char ** params, int len, char * raw){
     );
 
     user_sent_message(current_username, talking_to, raw, get_current_time(), 1);
+    refresh_chat();
 }
 
 int input(char * command, char ** params, int len, char * raw){
     
     int res, port, i;
     char * response;
+    char * message;
     connection_data * c;
 
     if(command == NULL)
@@ -264,6 +273,7 @@ int input(char * command, char ** params, int len, char * raw){
             printf("you must logout to login with another account\n");
             return 0;
         }      
+
         if(len < 2 || len > 3){
             printf("error wrong format, type:\n\nin username password server_port\n\n");
             return 0;
@@ -333,11 +343,9 @@ int input(char * command, char ** params, int len, char * raw){
 
         c = connection(default_port);
         
-        sprintf(buf, "hanging|%s", current_username);
-        
         response = make_request(
             c, 
-            buf, 
+            "hanging", 
             1
         );
 
@@ -346,6 +354,11 @@ int input(char * command, char ** params, int len, char * raw){
             return 0;
         }
 
+        if(strlen(response) == 0){
+            printf("no message pending...\n");
+            return 0;
+        }
+        
         printf("%s\n", response);
 
         return 0;
@@ -362,7 +375,7 @@ int input(char * command, char ** params, int len, char * raw){
 
         c = connection(default_port);
         
-        sprintf(buf, "show|%s|%s", params[0], current_username);
+        sprintf(buf, "show|%s", params[0]);
         
         response = make_request(
             c, 
@@ -374,6 +387,20 @@ int input(char * command, char ** params, int len, char * raw){
             printf("error connectiong to the server\n");
             return 0;
         }
+
+        message = strtok(response, "\n");
+
+        while (message){
+            
+            printf("%s\n", message);
+
+            /* TODO server should send sent timestamp */
+
+            user_received_message(current_username, params[0], message, get_current_time());
+            
+            message = strtok(NULL, "\n");
+        }
+        
  
         /* TODO
             add messages to chat
@@ -457,8 +484,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
             return NULL;
         }
 
-        printf("%s := %s\n", params[0], params[2]);
-
+        refresh_chat();
         return NULL;
     }
 
@@ -473,7 +499,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         /* this but better ??? */
         
         if(in_chat){
-            open_chat(talking_to);
+            refresh_chat();
         }
 
         return NULL;
@@ -504,7 +530,8 @@ void disconnected(int sd){
     if(c == NULL || c->port != default_port){
         return;
     }    
-    printf("server disconnected...\n");
+
+    /* printf("server disconnected...\n"); */
 
 }
 

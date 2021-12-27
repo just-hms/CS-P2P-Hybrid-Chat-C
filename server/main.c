@@ -31,8 +31,6 @@ int input(char * command, char ** params, int len, char * raw){
 
     if(strcmp(command, "list") == 0){
         
-        /* TODO doesn't work */
-
         user_list = user_get_online_list(1);
         
         if(user_list == NULL){
@@ -191,13 +189,16 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
         c_1 = find_connection_by_username(params[0]);
 
-        sprintf(buf, "has_read|%s|%s|%d", c->username, c_1->username, get_current_time());
-        
         if(c_1 == NULL){
-
-            user_buffer_has_read(c->username, c_1->username);
+            
+            user_buffer_has_read(c->username, params[0]);
+            
             return response;
         }
+
+        printf("kek\n");
+        
+        sprintf(buf, "has_read|%s|%s|%d", c->username, c_1->username, get_current_time());
 
         make_request(
             c_1,

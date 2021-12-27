@@ -5,9 +5,12 @@
 #define USER_FILE "./server/user.txt"
 #define SESSION_FILE "./server/sessions.txt"
 #define TMP_FILE "./server/session_tmp.txt"
+#define BUFFERED_MESSAGE "./server/stuff/buffered"
+#define BUFFERED_HAS_READ "./server/stuff/has_read"
 
-#define OUT_PREFIX "./client/test/out"
-#define CHAT_PREFIX "./client/test/chat"
+
+#define OUT_PREFIX "./client/stuff/out"
+#define CHAT_PREFIX "./client/stuff/chat"
 
 time_t get_current_time();
 
@@ -27,6 +30,8 @@ char * user_get_online_list(int);
 
 void user_buffer_has_read(char *, char *);
 void user_buffer_message(char *, char *, char *, time_t);
+
+char * user_send_has_read(char *);
 
 /* CLIENT */
 
