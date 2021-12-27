@@ -65,7 +65,7 @@ int user_add(char * username, char * password){
     if (fp == NULL)
         return 0;
 
-    fprintf(fp,"%s|%s\n", username, password);
+    fprintf(fp,"%s %s\n", username, password);
 
     fclose(fp);
 
@@ -189,26 +189,26 @@ void user_end_session(char * to_remove, time_t t){
 
     while ((fgets(buf, BUF_LEN, fPtr)) != NULL){
 
-        if(starts_with(buf, to_remove)){
+        if(!starts_with(buf, to_remove)){
+            fputs(buf, fTemp);
+            continue;
+        }
+        
+        sscanf(buf, "%s %d %ld %ld", username,  &port, &start, &end);
 
-            sscanf(buf, "%s %d %ld %ld", username,  &port, &start, &end);
-
-            if(end == -1){
-
-                fprintf(
-                    fTemp, 
-                    "%s %d %d %ld %ld\n", 
-                    username, 
-                    port, 
-                    start, 
-                    t
-                );
-
-                continue;
-            }
+        if(end != -1){
+            fputs(buf, fTemp);
+            continue;
         }
 
-        fputs(buf, fTemp);
+        fprintf(
+            fTemp, 
+            "%s %d %d %ld %ld\n", 
+            username, 
+            port, 
+            start, 
+            t
+        );
     }
 
     fclose(fPtr);
@@ -221,22 +221,8 @@ void user_end_session(char * to_remove, time_t t){
     return;
 }
 
-char * get_chat(char * chat_name){
-    
-    /* TODO */
-    
-    char * chat;
-
-    chat = malloc(10 * sizeof(char));
-
-    strcpy(chat, "todo");
-    return chat;
-}
-
 char * user_show(char * sender, char * receiver){
-    /* TODO 
-        flush buffered messages
-    */
+    /* TODO */
 }
 
 char * user_hanging(char * receiver){
@@ -322,8 +308,11 @@ char * user_get_online_list(int timestamp_and_port){
 void save_out_time(char * username){
 	
 	FILE *fd;
+    char filename[100];
+
+    sprintf(filename, "%s-%s\0", OUT_PREFIX, username);
     
-    fd = fopen(username, "w");
+    fd = fopen(filename, "w");
 
     if(fd == NULL)
         return;
@@ -339,6 +328,10 @@ time_t get_out_time(char * username){
 
     FILE * fd;
     
+    char filename[100];
+
+    sprintf(filename, "%s-%s\0", OUT_PREFIX, username);
+    
     fd = fopen(username, "r");
 
     if(fd == NULL)
@@ -353,9 +346,12 @@ time_t get_out_time(char * username){
 }
 
 void clear_out_time(char * username){
-    remove(username);
-}
+    char filename[100];
 
+    sprintf(filename, "%s-%s\0", OUT_PREFIX, username);
+    
+    remove(filename);
+}
 
 void user_print_chat(char * receiver, char * sender){
     /* TODO */
@@ -368,16 +364,93 @@ void user_buffer_has_read(char * receiver, char * sender){
 }
 
 void user_sent_message(char * sender, char * receiver, char * message, time_t timestamp, int is_receiver_online){
-    /* TODO */
+    
+    FILE * fp;
+    
+    char filename[50 + 50 + 20];
+
+    sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, sender, receiver);
+    
+    fp = fopen(filename, "a");
+    
+    if (fp == NULL)
+        return;
+
+    if(is_receiver_online)
+        fprintf(fp,"** %s %ld\n", message, timestamp);
+    else
+        fprintf(fp,"* %s %ld\n", message, timestamp);
+
+    fclose(fp);
+
 
 }
 
 void user_received_message(char * receiver, char * sender, char * message, time_t timestamp){
+    
+    FILE * fp;
+    
+    char filename[50 + 50 + 20];
 
+    sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, receiver, sender);
+    
+    fp = fopen(filename, "a");
+    
+    if (fp == NULL)
+        return;
+
+    fprintf(fp,"%s:= %s %ld\n", sender, message, timestamp);
+    
+    fclose(fp);
 }
 
-void user_has_read(char * sender, char * receiver, time_t timestamp){
+void user_has_read(char * sender, char * receiver, time_t until_when){
+    
+    FILE * fPtr;
+    FILE * fTemp;
+    
+    char buf[BUF_LEN];
+    char newline[BUF_LEN];
 
+    time_t timestamp;
+    
+    char filename[50 + 50 + 20];
+    /* TODO FIX ME*/
+    char message[BUF_LEN];
+    char has_read[3];
+
+
+    sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, sender, receiver);
+    
+
+    fPtr  = fopen(filename, "r");
+    fTemp = fopen(TMP_FILE, "w"); 
+
+    if (fPtr == NULL || fTemp == NULL)
+        return;
+
+
+    while ((fgets(buf, BUF_LEN, fPtr)) != NULL){
+
+        if(!starts_with(buf, "*")){
+            fputs(buf, fTemp);
+            continue;
+        }
+
+        sscanf(buf,"%s %s %ld", has_read, message, &timestamp);
+        if(strcmp(has_read, "*") ==  0 && timestamp < until_when)
+            fprintf(fTemp, "** %s %ld\n", message, &timestamp);
+        else
+            fputs(buf, fTemp);
+    }
+
+    fclose(fPtr);
+    fclose(fTemp);
+
+    remove(filename);
+    rename(TMP_FILE, filename);
+
+    return;
 }
 
 int is_in_contacts(char * owner, char* username){

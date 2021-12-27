@@ -6,6 +6,9 @@
 #define SESSION_FILE "./server/sessions.txt"
 #define TMP_FILE "./server/session_tmp.txt"
 
+#define OUT_PREFIX "./client/out"
+#define CHAT_PREFIX "./server/chat"
+
 time_t get_current_time();
 
 /* SERVER */
