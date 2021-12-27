@@ -9,7 +9,7 @@ int current_port;                       /* your port */
 char * current_username = NULL;         /* your current username */
 
 int in_chat = 0;
-char offline_username [50];             /* FIX ME */
+char talking_to [50];                   /* FIX ME */
 char buf[BUF_LEN];
 
 void add_to_chat(connection_data * c){
@@ -20,7 +20,9 @@ void open_chat(char * username){
     
     in_chat = 1;
 
-    strcpy(offline_username, username);
+    strcpy(talking_to, username);
+
+    system("clear");
 
     printf("\n\nin chat with {%s}\n\n", username);
 
@@ -41,7 +43,9 @@ void handle_chat(char * command, char ** params, int len, char * raw){
     /* quit the chat */    
 
     if(strcmp(command, "\\q") == 0){     
-        in_chat = 1;
+        in_chat = 0;
+        system("clear");
+        /* TODO show commands ???*/
         return;
     }
 
@@ -129,15 +133,13 @@ void handle_chat(char * command, char ** params, int len, char * raw){
 
     /* write a message */
     
-    /* TODO */
-
-    c = find_connection_by_username(offline_username);
+    c = find_connection_by_username(talking_to);
 
     sprintf(
         buf,
         "message|%s|%s|%s|%ld",
         current_username,
-        offline_username,
+        talking_to,
         replace_n_with_0(raw),
         get_current_time()
     );
@@ -148,7 +150,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
             buf,
             0
         );
-        user_sent_message(current_username, offline_username, raw, get_current_time(), 1);
+        user_sent_message(current_username, talking_to, raw, get_current_time(), 1);
         return;
     }
 
@@ -161,15 +163,15 @@ void handle_chat(char * command, char ** params, int len, char * raw){
     );
 
     if(response == NULL){
-        printf("sorry both the server and {%s} are offline...", offline_username);
+        printf("sorry both the server and {%s} are offline...", talking_to);
         return;
     }
     if(strcmp(response, "error") == 0){
-        printf("error comunicating with the server", offline_username);
+        printf("error comunicating with the server", talking_to);
         return;
     }
     if(strcmp(response, "offline") == 0){
-        user_sent_message(current_username, offline_username, raw, get_current_time(), 0);
+        user_sent_message(current_username, talking_to, raw, get_current_time(), 0);
         return;
     }
 
@@ -178,13 +180,13 @@ void handle_chat(char * command, char ** params, int len, char * raw){
     c = connection(port);
 
     if(c == NULL){
-        user_sent_message(current_username, offline_username, raw, get_current_time(), 0);
+        user_sent_message(current_username, talking_to, raw, get_current_time(), 0);
         return;
     }
 
-    connection_set_username(c->sd, offline_username);
+    connection_set_username(c->sd, talking_to);
     
-    user_sent_message(current_username, offline_username, raw, get_current_time(), 1);
+    user_sent_message(current_username, talking_to, raw, get_current_time(), 1);
 
 }
 
@@ -337,7 +339,7 @@ int input(char * command, char ** params, int len, char * raw){
             return 0;
         }
 
-        printf("%s", response);
+        printf("%s\n", response);
 
         return 0;
     }
@@ -353,7 +355,7 @@ int input(char * command, char ** params, int len, char * raw){
 
         c = connection(default_port);
         
-        sprintf(buf, "hanging|%s|%s", params[0], current_username);
+        sprintf(buf, "show|%s|%s", params[0], current_username);
         
         response = make_request(
             c, 
@@ -365,7 +367,7 @@ int input(char * command, char ** params, int len, char * raw){
             printf("error connectiong to the server\n");
             return 0;
         }
-
+ 
         /* TODO
             add messages to chat
         */
@@ -414,11 +416,6 @@ int input(char * command, char ** params, int len, char * raw){
             save_out_time(current_username);
         }
 
-        if(current_username != NULL)
-            free(current_username);
-
-        current_username = NULL;
-
         close_all_connections();
         return 1;
     }
@@ -431,11 +428,10 @@ int input(char * command, char ** params, int len, char * raw){
 char * get_request(char * request, char ** params, int len, int sd, char * raw){
     
     time_t t;
+    
     /* message|from|to|message|timestamp??? */
     
     if(strcmp(request, "message") == 0){
-
-        /* TODO decide this*/
 
         if(len != 4){
             return NULL;
@@ -445,7 +441,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
         user_received_message(current_username, params[0], params[2], t);
 
-        if(in_chat == 0 || strcmp(params[0], offline_username) != 0){
+        if(in_chat == 0 || strcmp(params[0], talking_to) != 0){
             
             printf("you received a message from {%s}\n", params[0]);
             return NULL;
@@ -457,9 +453,18 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
     }
 
     if(strcmp(request, "has_read") == 0){
-        /* TODO 
-            something in a function cause you could have to this in login or chat
-        */
+        if(len != 2)
+            return NULL;
+        
+        sscanf(params[1], "%ld", &t);
+
+        user_has_read(current_username, params[0], t);
+        
+        /* this but better ??? */
+        
+        if(in_chat){
+            open_chat(talking_to);
+        }
     }
 
 }

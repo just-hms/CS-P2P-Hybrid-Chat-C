@@ -377,6 +377,8 @@ void user_received_message(char * receiver, char * sender, char * message, time_
 }
 
 int is_in_contacts(char * owner, char* username){
+    
     /* TODO */
+    
     return 1;
 }

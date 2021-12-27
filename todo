@@ -1,31 +1,9 @@
-[] make connections connectionless
-[] add something to close session on_error
-
-[] memset 0 to malloc buffers
-[] check memory free
 [] fix send & receive message
-
-[] try to brake server doing wrong requests
-[] timeout in requests
 [] add group messages
-
 [] tell to the new user that he's been added to the chat (group or not)
-
-
-[] handle deaths, connection module should do it by itself
-
 [] fix different methods to access file
-[] link sd of endpoint with connections or at least username ???
-
-[] accept adds shit to a list
-[] send with sd, or send with username in some misterios way
-
 [] wtf is corrupted ???
-
-[] command to disconnect from other devices ???
-
-[] close old connection on login ???
-
-[] add cache in connections
-
+[] close old connection on login ???        //              or other things like this
 [] add prefix to out files
+
+[] find a way to use only one socket to talk
