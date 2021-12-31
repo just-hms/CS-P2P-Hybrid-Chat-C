@@ -9,5 +9,6 @@
 [] find a way to use only one socket to talk
 [] out doesn't work
 
+[] user_has_read doesn't work (segmentation fault somewhere)
 [] on show the server sends only the message, not the timestamps
 [] on show use different dilimiters ???

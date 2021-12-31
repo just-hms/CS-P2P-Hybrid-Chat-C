@@ -160,7 +160,7 @@ void user_start_session(char * username, int port){
 
 void user_end_session(char * to_remove, time_t t){
     
-    FILE * fPtr;
+    FILE * fp;
     FILE * fTemp;
     
     char buf[BUF_LEN];
@@ -171,14 +171,14 @@ void user_end_session(char * to_remove, time_t t){
 
     int port;
 
-    fPtr  = fopen(SESSION_FILE, "r");
+    fp  = fopen(SESSION_FILE, "r");
     fTemp = fopen(SERVER_TMP_FILE, "w"); 
 
-    if (fPtr == NULL || fTemp == NULL)
+    if (fp == NULL || fTemp == NULL)
         return;
 
 
-    while ((fgets(buf, BUF_LEN, fPtr)) != NULL){
+    while ((fgets(buf, BUF_LEN, fp)) != NULL){
 
         if(!starts_with(buf, to_remove)){
             fputs(buf, fTemp);
@@ -202,7 +202,7 @@ void user_end_session(char * to_remove, time_t t){
         );
     }
 
-    fclose(fPtr);
+    fclose(fp);
     fclose(fTemp);
 
 
@@ -660,44 +660,46 @@ void user_received_message(char * receiver, char * sender, char * message, time_
 
 void user_has_read(char * sender, char * receiver, time_t until_when){
     
-    FILE * fPtr;
+    FILE * fp;
     FILE * fTemp;
     
-    char buf[BUF_LEN];
+    char * line;
+    int len;
 
-    time_t timestamp;
+    time_t t;
     
     char filename[50 + 50 + 20];
     char message[BUF_LEN];
+    char time_string[20];
     char has_read[3];
 
 
     sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, sender, receiver);
     
-    fPtr  = fopen(filename, "r");
-    printf("%s\n", filename);
+    fp = fopen(filename, "r");
     fTemp = fopen(CLIENT_TMP_FILE, "w"); 
 
-    if (fPtr == NULL || fTemp == NULL)
+    if (fp == NULL || fTemp == NULL)
         return;
 
-
-    while ((fgets(buf, BUF_LEN, fPtr)) != NULL){
-
-        if(!starts_with(buf, "*")){
-            fputs(buf, fTemp);
+    while (getline(&line, &len, fp) != -1) {
+        
+        if(!starts_with(line, "*")){
+            fputs(line, fTemp);
             continue;
         }
 
-        sscanf(buf,"%s %s %ld", has_read, message, &timestamp);
+        sscanf(line,"%[^'|']|%[^'|']|%[^'|']" , has_read, message, time_string);
 
-        if(timestamp > until_when)
-            fprintf(fTemp, "** %s %ld\n", message, &timestamp);
+        sscanf(time_string, "%ld", &t);
+
+        if(t > until_when)
+            fprintf(fTemp, "**|%s|%s\n", message, time_string);
         else
-            fputs(buf, fTemp);
+            fputs(line, fTemp);
     }
 
-    fclose(fPtr);
+    fclose(fp);
     fclose(fTemp);
 
     printf("%s\n", filename);
