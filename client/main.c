@@ -37,8 +37,6 @@ void handle_chat(char * command, char ** params, int len, char * raw){
     
     connection_data * c;
     
-    /* TODO build message with command + params of find it somewhere */
-    
     char * message;
     char * response;
 
@@ -128,7 +126,6 @@ void handle_chat(char * command, char ** params, int len, char * raw){
 
         c = connection(port);
         
-        /* TODO */
         connection_set_username(c->sd, params[0]);
         add_to_chat(c);
 
@@ -248,7 +245,7 @@ int input(char * command, char ** params, int len, char * raw){
 
         if(strcmp(response, "ok") == 0){
             free(response);
-            printf("congratulations %s, you're account has been created!\n", params[0]);
+            printf("congratulations {%s}, you're account has been created!\n", params[0]);
 
             return 0;
         }
@@ -403,10 +400,6 @@ int input(char * command, char ** params, int len, char * raw){
             message = strtok(NULL, "\n");
         }
         
- 
-        /* TODO
-            add messages to chat
-        */
         
         return 0;
     }
@@ -429,6 +422,20 @@ int input(char * command, char ** params, int len, char * raw){
             printf("error %s is not in your contacts\n", params[0]);
             return 0;
         }
+
+        /* if server is online check if there are some buffered read messaged notification */
+
+        c = connection(default_port);
+        
+        sprintf(buf, "get_has_read|%s", params[0]);
+
+        make_request(
+            c,
+            buf,
+            0
+        );
+
+        /* open the chat anyway */
 
         open_chat(params[0]);
 
@@ -468,6 +475,8 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
     time_t t;
 
     /* message|from|to|message|timestamp??? */
+    
+    printf("raw := %s\n", raw);        
 
     if(request == NULL){
         return NULL;
@@ -494,16 +503,19 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
     }
 
     if(strcmp(request, "has_read") == 0){
+
+        printf("someone has read a message you sent..\n");
+        printf("raw := %s\n", raw);   
+
         if(len != 2)
             return NULL;
         
         sscanf(params[1], "%ld", &t);
 
         user_has_read(current_username, params[0], t);
-        
-        /* this but better ??? */
-        
-        if(in_chat){
+        exit(0);
+        /* TODO check that you are in chat with pa */
+        if(in_chat && strcmp(talking_to, params[0]) == 0){
             refresh_chat();
         }
 

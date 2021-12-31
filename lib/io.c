@@ -164,7 +164,6 @@ void user_end_session(char * to_remove, time_t t){
     FILE * fTemp;
     
     char buf[BUF_LEN];
-    char newline[BUF_LEN];
 
     time_t start, end;
 
@@ -173,7 +172,7 @@ void user_end_session(char * to_remove, time_t t){
     int port;
 
     fPtr  = fopen(SESSION_FILE, "r");
-    fTemp = fopen(TMP_FILE, "w"); 
+    fTemp = fopen(SERVER_TMP_FILE, "w"); 
 
     if (fPtr == NULL || fTemp == NULL)
         return;
@@ -208,15 +207,14 @@ void user_end_session(char * to_remove, time_t t){
 
 
     remove(SESSION_FILE);
-    rename(TMP_FILE, SESSION_FILE);
-
-    return;
+    rename(SERVER_TMP_FILE, SESSION_FILE);
 }
-
 
 char * user_show(char * receiver, char * sender){
 
     FILE *fp;
+    FILE * fTemp;
+
     char filename[100];
     char message[100];
     char username[50];
@@ -240,21 +238,19 @@ char * user_show(char * receiver, char * sender){
 
         sscanf(line, "%[^'|']|%[^'|']|%[^'|']", username, message, timestamp_string);        
         
-        printf("username := %s\n", username);
-        printf("sender := %s\n", sender);
-        
         if(strcmp(username, sender) == 0){
             count++;
         }        
     }
     if(count == 0)
         return "";
-
-    /* TODO explain this */
     
-    printf("count := %d\n", count);
-
+    fTemp = fopen(SERVER_TMP_FILE, "w"); 
     buf = malloc(count * (100));
+    
+    buf[0] = '\0';
+
+    rewind(fp);
 
     while (getline(&line, &len, fp) != -1) {
 
@@ -267,11 +263,28 @@ char * user_show(char * receiver, char * sender){
         if(strcmp(username, sender) == 0){
             strcat(buf, message);
             strcat(buf, "\n");
+            continue;
         }
+        
+        fprintf(
+            fTemp, 
+            "%s|%s|%s\n", 
+            username, 
+            message, 
+            timestamp_string
+        );
         
     }
 
     strcat(buf, "\0");
+
+    fclose(fp);
+    fclose(fTemp);
+
+
+    remove(filename);
+    rename(SERVER_TMP_FILE, filename);
+
     return buf;
 }
 
@@ -533,11 +546,35 @@ void user_print_chat(char * receiver, char * sender){
 
 }
 
-char * user_send_has_read(char * username){
+time_t user_get_buffered_has_read_time(char * sender, char * receiver){
+    
+    FILE *fd;
+    char filename[100];
+    time_t t;
+    char time_string[20];
 
-    /* TODO maybe get the first one and do a while in main prog */
+    /* to tell the sender that the receiver has read */
 
+    sprintf(filename, "%s-%s-%s.txt\0", BUFFERED_HAS_READ, sender, receiver);
+    
+    printf("has_read_file := %s",filename);
+    fd = fopen(filename, "r");
+
+    if(fd == NULL)
+        return -1;
+
+    fread (time_string, 1, 20, fd);
+
+    sscanf(time_string, "%ld", &t);
+
+	fclose(fd);
+
+    remove(filename);
+
+    return t;
 }
+
+/* overwites cause last is more important */
 
 void user_buffer_has_read(char * receiver, char * sender){
     
@@ -546,16 +583,16 @@ void user_buffer_has_read(char * receiver, char * sender){
 
     /* to tell the sender that the receiver has read */
 
-    sprintf(filename, "%s-%s.txt\0", BUFFERED_HAS_READ, sender);
+    sprintf(filename, "%s-%s-%s.txt\0", BUFFERED_HAS_READ, sender, receiver);
     
-    fd = fopen(filename, "a");
+    fd = fopen(filename, "w");
 
     if(fd == NULL)
         return;
 
     /* save the name of the receiver and the time at which he's read */
 
-    fprintf(fd, "%s %ld\n", receiver, get_current_time());
+    fprintf(fd, "%ld",get_current_time());
 
     if(fd != NULL)
 	    fclose(fd);
@@ -627,7 +664,6 @@ void user_has_read(char * sender, char * receiver, time_t until_when){
     FILE * fTemp;
     
     char buf[BUF_LEN];
-    char newline[BUF_LEN];
 
     time_t timestamp;
     
@@ -638,9 +674,9 @@ void user_has_read(char * sender, char * receiver, time_t until_when){
 
     sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, sender, receiver);
     
-
     fPtr  = fopen(filename, "r");
-    fTemp = fopen(TMP_FILE, "w"); 
+    printf("%s\n", filename);
+    fTemp = fopen(CLIENT_TMP_FILE, "w"); 
 
     if (fPtr == NULL || fTemp == NULL)
         return;
@@ -654,7 +690,8 @@ void user_has_read(char * sender, char * receiver, time_t until_when){
         }
 
         sscanf(buf,"%s %s %ld", has_read, message, &timestamp);
-        if(strcmp(has_read, "*") ==  0 && timestamp < until_when)
+
+        if(timestamp > until_when)
             fprintf(fTemp, "** %s %ld\n", message, &timestamp);
         else
             fputs(buf, fTemp);
@@ -663,8 +700,10 @@ void user_has_read(char * sender, char * receiver, time_t until_when){
     fclose(fPtr);
     fclose(fTemp);
 
+    printf("%s\n", filename);
+    printf("%s\n", CLIENT_TMP_FILE);
     remove(filename);
-    rename(TMP_FILE, filename);
+    rename(CLIENT_TMP_FILE, filename);
 
     return;
 }

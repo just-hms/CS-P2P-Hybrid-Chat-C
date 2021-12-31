@@ -4,11 +4,11 @@
 
 #define USER_FILE "./server/stuff/user.txt"
 #define SESSION_FILE "./server/stuff/sessions.txt"
-#define TMP_FILE "./server/stuff/session_tmp.txt"
+#define SERVER_TMP_FILE "./server/stuff/tmp.txt"
 #define BUFFERED_MESSAGE_PREFIX "./server/stuff/buffered"
 #define BUFFERED_HAS_READ "./server/stuff/has_read"
 
-
+#define CLIENT_TMP_FILE "./client/stuff/tmp.txt"
 #define OUT_PREFIX "./client/stuff/out"
 #define CHAT_PREFIX "./client/stuff/chat"
 
@@ -31,7 +31,7 @@ char * user_get_online_list(int);
 void user_buffer_has_read(char *, char *);
 void user_buffer_message(char *, char *, char *, time_t);
 
-char * user_send_has_read(char *);
+time_t user_get_buffered_has_read_time(char *, char *);
 
 /* CLIENT */
 

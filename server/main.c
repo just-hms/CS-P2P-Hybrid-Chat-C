@@ -180,14 +180,15 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         if(len != 1)
             return build_string("error");
         
+        if(!user_exists(params[0]))
+            return "error";
+        
         c = find_connection_by_sd(sd);
         
         if(c == NULL || !c->logged)
             return build_string("error");
         
         response = user_show(c->username, params[0]);
-
-        printf("response := %s\n", response);
 
         if(response == "")
             return "no_message_found";
@@ -201,7 +202,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
             return response;
         }
         
-        sprintf(buf, "has_read|%s|%s|%d", c->username, c_1->username, get_current_time());
+        sprintf(buf, "has_read|%s|%ld", c->username, get_current_time());
 
         make_request(
             c_1,
@@ -224,6 +225,46 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         return response;
     }
 
+    if(strcmp(request, "get_has_read") == 0){
+        
+        if(len != 1)
+            return NULL;
+        
+        c = find_connection_by_sd(sd);
+
+        if(!user_exists(params[0]))
+            return NULL;
+        /* should never happen */
+        
+        printf("kek\n");
+        if(c == NULL)
+            return NULL;
+        
+        printf("kek\n");
+
+        t = user_get_buffered_has_read_time(c->username, params[0]);
+        printf("kek\n");
+        
+
+        printf("timestamp := %ld\n", t);
+
+        if(t != -1){
+            printf("lol\n");
+
+            sprintf(buf, "has_read|%s|%ld", params[0], t);
+            
+            make_request(
+                c,
+                buf,
+                0
+            );
+        }
+
+        printf("lolz\n");
+
+
+        return NULL;
+    }
 }
 
 /* ./server [port] */
