@@ -187,6 +187,11 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         
         response = user_show(c->username, params[0]);
 
+        printf("response := %s\n", response);
+
+        if(response == "")
+            return "no_message_found";
+
         c_1 = find_connection_by_username(params[0]);
 
         if(c_1 == NULL){
@@ -195,8 +200,6 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
             
             return response;
         }
-
-        printf("kek\n");
         
         sprintf(buf, "has_read|%s|%s|%d", c->username, c_1->username, get_current_time());
 

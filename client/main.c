@@ -354,7 +354,9 @@ int input(char * command, char ** params, int len, char * raw){
             return 0;
         }
 
-        if(strlen(response) == 0){
+        /* FIX ME */
+
+        if(strnlen(response, 2) == 0){
             printf("no message pending...\n");
             return 0;
         }
@@ -410,6 +412,7 @@ int input(char * command, char ** params, int len, char * raw){
     }
 
     /* chat username */
+
     if(strcmp(command, "chat") ==  0){
 
         if(len != 1){
@@ -447,6 +450,7 @@ int input(char * command, char ** params, int len, char * raw){
         c = connection(default_port);
 
         if(c == NULL){
+            printf("saving out time...\n");
             save_out_time(current_username);
         }
 
@@ -464,6 +468,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
     time_t t;
 
     /* message|from|to|message|timestamp??? */
+
     if(request == NULL){
         return NULL;
     }

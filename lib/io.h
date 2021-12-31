@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include "utils.h"
 
-#define USER_FILE "./server/user.txt"
-#define SESSION_FILE "./server/sessions.txt"
-#define TMP_FILE "./server/session_tmp.txt"
-#define BUFFERED_MESSAGE "./server/stuff/buffered"
+#define USER_FILE "./server/stuff/user.txt"
+#define SESSION_FILE "./server/stuff/sessions.txt"
+#define TMP_FILE "./server/stuff/session_tmp.txt"
+#define BUFFERED_MESSAGE_PREFIX "./server/stuff/buffered"
 #define BUFFERED_HAS_READ "./server/stuff/has_read"
 
 

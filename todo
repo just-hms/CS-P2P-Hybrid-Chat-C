@@ -7,3 +7,7 @@
 [] add prefix to out files
 
 [] find a way to use only one socket to talk
+[] out doesn't work
+
+[] on show the server sends only the message, not the timestamps
+[] on show use different dilimiters ???

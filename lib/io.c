@@ -213,27 +213,8 @@ void user_end_session(char * to_remove, time_t t){
     return;
 }
 
-char * user_show(char * sender, char * receiver){
-    
-    FILE *fd;
-    char filename[100];
 
-    sprintf(filename, "%s-%s.txt\0", BUFFERED_MESSAGE, receiver);
-    
-    fd = fopen(filename, "r");
-
-    if(fd == NULL)
-        return "";
-
-    if(fd != NULL)
-	    fclose(fd);
-
-    /* TODO this better */
-
-    return build_string("message1\nmessage2");
-}
-
-char * user_hanging(char * receiver){
+char * user_show(char * receiver, char * sender){
 
     FILE *fp;
     char filename[100];
@@ -242,19 +223,38 @@ char * user_hanging(char * receiver){
     char timestamp_string[20];
     char * line = NULL;
     char * buf;
+    int count = 0;
 
     int len;
     
-    buf = malloc(BUF_LEN * sizeof(char));
-
-    buf[0] = '\0';
-    
-    sprintf(filename, "%s-%s.txt\0", BUFFERED_MESSAGE, receiver);
+    sprintf(filename, "%s-%s.txt\0", BUFFERED_MESSAGE_PREFIX, receiver);
     
     fp = fopen(filename, "r");
 
     if(fp == NULL)
         return "";
+    
+    while (getline(&line, &len, fp) != -1) {
+
+        replace_n_with_0(line);
+
+        sscanf(line, "%[^'|']|%[^'|']|%[^'|']", username, message, timestamp_string);        
+        
+        printf("username := %s\n", username);
+        printf("sender := %s\n", sender);
+        
+        if(strcmp(username, sender) == 0){
+            count++;
+        }        
+    }
+    if(count == 0)
+        return "";
+
+    /* TODO explain this */
+    
+    printf("count := %d\n", count);
+
+    buf = malloc(count * (100));
 
     while (getline(&line, &len, fp) != -1) {
 
@@ -262,15 +262,118 @@ char * user_hanging(char * receiver){
 
         sscanf(line, "%[^'|']|%[^'|']|%[^'|']", username, message, timestamp_string);        
 
-        strcat(buf, username);
-        strcat(buf, " ");
-        strcat(buf, "1");
-        strcat(buf, " ");
-        strcat(buf, timestamp_string);
-        strcat(buf, "\n");
+        /* check if you already found the username */
+        
+        if(strcmp(username, sender) == 0){
+            strcat(buf, message);
+            strcat(buf, "\n");
+        }
         
     }
 
+    strcat(buf, "\0");
+    return buf;
+}
+
+struct hanging_message{
+    char username[50];
+    int count;
+    char timestamp[20];
+    struct hanging_message * next; 
+} typedef hanging_message;
+
+
+char * user_hanging(char * receiver){
+
+    FILE *fp;
+    char filename[100];
+    char message[100];
+    char username[50];
+    char timestamp_string[20];
+    /* TODO explain this */
+    char count_sting[20];
+    char * line = NULL;
+    char * buf;
+    int found = 0;
+    int count = 0;
+
+    int len;
+    
+    hanging_message * head = NULL;
+    hanging_message * new_hanging = NULL;
+    hanging_message * c = NULL;
+    hanging_message * to_remove = NULL;
+
+    sprintf(filename, "%s-%s.txt\0", BUFFERED_MESSAGE_PREFIX, receiver);
+    
+    fp = fopen(filename, "r");
+
+    if(fp == NULL)
+        return "";
+    
+    while (getline(&line, &len, fp) != -1) {
+
+        replace_n_with_0(line);
+
+        sscanf(line, "%[^'|']|%[^'|']|%[^'|']", username, message, timestamp_string);        
+
+        /* check if you already found the username */
+        
+        c = head;
+
+        while (c != NULL){
+
+            if(strcmp(c->username, username) == 0){
+                strcpy(c->timestamp, timestamp_string);
+                c->count++;
+                found = 1;
+                break;
+            }
+            c = c->next;
+        }
+        if(found){
+            found = 0;
+            continue;
+        }
+
+        /* if not insert it */
+        count++;
+
+        new_hanging = malloc(sizeof(hanging_message));
+        strcpy(new_hanging->username, username);
+        new_hanging->count = 1;
+        strcpy(new_hanging->timestamp, timestamp_string);
+
+        if(head == NULL){
+            head = new_hanging;
+            head->next = NULL;
+            continue;
+        }
+        new_hanging->next = head;
+        head = new_hanging;
+        
+    }
+
+    /* TODO explain this */
+    buf = malloc(count * (50 + 20 + 20 + 5));
+    
+    c = head;
+
+    while (c){
+        strcat(buf, c->username);
+        strcat(buf, " ");
+
+        sprintf(count_sting, "%d", c->count);
+        strcat(buf, count_sting);
+        strcat(buf, " ");
+        
+        strcat(buf, c->timestamp);
+        strcat(buf, "\n");
+        to_remove = c;
+        c = c->next;
+        free(to_remove);
+    }
+    
     strcat(buf, "\0");
     return buf;
 }
@@ -443,12 +546,6 @@ void user_buffer_has_read(char * receiver, char * sender){
 
     /* to tell the sender that the receiver has read */
 
-    printf("%s\n", BUFFERED_HAS_READ);
-    printf("%s\n", sender);
-    printf("%s\n", receiver);
-    printf("%ld\n", get_current_time());
-
-
     sprintf(filename, "%s-%s.txt\0", BUFFERED_HAS_READ, sender);
     
     fd = fopen(filename, "a");
@@ -470,7 +567,7 @@ void user_buffer_message(char * sender, char * receiver, char * message, time_t 
     FILE *fd;
     char filename[100];
 
-    sprintf(filename, "%s-%s.txt\0", BUFFERED_MESSAGE, receiver);
+    sprintf(filename, "%s-%s.txt\0", BUFFERED_MESSAGE_PREFIX, receiver);
     
     fd = fopen(filename, "a");
 
