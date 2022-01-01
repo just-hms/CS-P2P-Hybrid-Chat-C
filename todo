@@ -12,3 +12,6 @@
 [] user_has_read doesn't work (segmentation fault somewhere)
 [] on show the server sends only the message, not the timestamps
 [] on show use different dilimiters ???
+[] out also without login
+
+[] clear buffered files if empty

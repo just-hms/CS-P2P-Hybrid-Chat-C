@@ -557,7 +557,6 @@ time_t user_get_buffered_has_read_time(char * sender, char * receiver){
 
     sprintf(filename, "%s-%s-%s.txt\0", BUFFERED_HAS_READ, sender, receiver);
     
-    printf("has_read_file := %s",filename);
     fd = fopen(filename, "r");
 
     if(fd == NULL)
@@ -653,7 +652,7 @@ void user_received_message(char * receiver, char * sender, char * message, time_
     if (fp == NULL)
         return;
 
-    fprintf(fp,"%s:=|%s|%ld\n", sender, message, timestamp);
+    fprintf(fp,"%s%s|%s|%ld\n", sender, " :=", message, timestamp);
     
     fclose(fp);
 }
@@ -663,7 +662,7 @@ void user_has_read(char * sender, char * receiver, time_t until_when){
     FILE * fp;
     FILE * fTemp;
     
-    char * line;
+    char * line = NULL;
     int len;
 
     time_t t;
@@ -672,7 +671,6 @@ void user_has_read(char * sender, char * receiver, time_t until_when){
     char message[BUF_LEN];
     char time_string[20];
     char has_read[3];
-
 
     sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, sender, receiver);
     
@@ -693,18 +691,18 @@ void user_has_read(char * sender, char * receiver, time_t until_when){
 
         sscanf(time_string, "%ld", &t);
 
-        if(t > until_when)
-            fprintf(fTemp, "**|%s|%s\n", message, time_string);
-        else
-            fputs(line, fTemp);
+        if(t < until_when){
+            fprintf(fTemp, "**|%s|%ld\n", message, t);
+            continue;
+        }
+
+        fputs(line, fTemp);
     }
 
     fclose(fp);
     fclose(fTemp);
 
-    printf("%s\n", filename);
-    printf("%s\n", CLIENT_TMP_FILE);
-    remove(filename);
+    remove(filename); 
     rename(CLIENT_TMP_FILE, filename);
 
     return;

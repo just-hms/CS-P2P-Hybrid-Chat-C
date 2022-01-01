@@ -298,7 +298,9 @@ int input(char * command, char ** params, int len, char * raw){
         }
 
         if(strcmp(response, "ok") == 0){
-
+            
+            connection_set_username(c->sd, SERVER_NAME);
+            
             current_username = malloc(sizeof(params[0]) + sizeof(char));
             strcpy(current_username, params[0]);
 
@@ -372,6 +374,10 @@ int input(char * command, char ** params, int len, char * raw){
             return 0;
         }
 
+        if(strcmp(params[0], current_username) == 0){
+            printf("can't show messages from you\n");
+            return 0;
+        }
         c = connection(default_port);
         
         sprintf(buf, "show|%s", params[0]);
@@ -387,13 +393,18 @@ int input(char * command, char ** params, int len, char * raw){
             return 0;
         }
 
+        if(strcmp(response, "error") == 0){
+            printf("sorry the username you specified doesn't exist\n");
+            return 0;
+        }
+
         message = strtok(response, "\n");
 
         while (message){
             
-            printf("%s\n", message);
+            printf("%s := %s\n", params[0], message);
 
-            /* TODO server should send sent timestamp */
+            /* TODO server should send the timestamp */
 
             user_received_message(current_username, params[0], message, get_current_time());
             
@@ -476,8 +487,6 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
     /* message|from|to|message|timestamp??? */
     
-    printf("raw := %s\n", raw);        
-
     if(request == NULL){
         return NULL;
     }
@@ -504,20 +513,15 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
     if(strcmp(request, "has_read") == 0){
 
-        printf("someone has read a message you sent..\n");
-        printf("raw := %s\n", raw);   
-
         if(len != 2)
             return NULL;
         
         sscanf(params[1], "%ld", &t);
 
         user_has_read(current_username, params[0], t);
-        exit(0);
-        /* TODO check that you are in chat with pa */
-        if(in_chat && strcmp(talking_to, params[0]) == 0){
+
+        if(in_chat && strcmp(talking_to, params[0]) == 0)
             refresh_chat();
-        }
 
         return NULL;
     }
