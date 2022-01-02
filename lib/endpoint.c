@@ -404,7 +404,7 @@ void connection_set_username(int sd, char * username){
     if(c == NULL)
         return;
     
-    strncpy(c->username, username, 50);
+    strncpy(c->username, username, USERNAME_LENGTH);
     
     c->logged = 1;
 }

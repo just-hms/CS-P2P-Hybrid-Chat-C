@@ -167,7 +167,7 @@ void user_end_session(char * to_remove, time_t t){
 
     time_t start, end;
 
-    char * username[50];
+    char * username[USERNAME_LENGTH];
 
     int port;
 
@@ -217,7 +217,7 @@ char * user_show(char * receiver, char * sender){
 
     char filename[100];
     char message[100];
-    char username[50];
+    char username[USERNAME_LENGTH];
     char timestamp_string[20];
     char * line = NULL;
     char * buf;
@@ -289,7 +289,7 @@ char * user_show(char * receiver, char * sender){
 }
 
 struct hanging_message{
-    char username[50];
+    char username[USERNAME_LENGTH];
     int count;
     char timestamp[20];
     struct hanging_message * next; 
@@ -301,7 +301,7 @@ char * user_hanging(char * receiver){
     FILE *fp;
     char filename[100];
     char message[100];
-    char username[50];
+    char username[USERNAME_LENGTH];
     char timestamp_string[20];
     /* TODO explain this */
     char count_sting[20];
@@ -368,7 +368,7 @@ char * user_hanging(char * receiver){
     }
 
     /* TODO explain this */
-    buf = malloc(count * (50 + 20 + 20 + 5));
+    buf = malloc(count * (USERNAME_LENGTH + 20 + 20 + 5));
     
     c = head;
 
@@ -406,7 +406,7 @@ char * user_get_online_list(int timestamp_and_port){
 
     /* FIX ME*/
 
-    char username[50];
+    char username[USERNAME_LENGTH];
 
     count = 0;
 
@@ -516,10 +516,10 @@ void clear_out_time(char * username){
 void user_print_chat(char * receiver, char * sender){
     FILE * fp;
     
-    char filename[50 + 50 + 20];
-    char sender_to_print [50];
+    char filename[USERNAME_LENGTH + USERNAME_LENGTH + 20];
+    char sender_to_print [USERNAME_LENGTH];
     char message [100];
-    char timestamp_string[50];
+    char timestamp_string[USERNAME_LENGTH];
     time_t timestamp;
     char * line = NULL;
     int len = 0;
@@ -621,7 +621,7 @@ void user_sent_message(char * sender, char * receiver, char * message, time_t ti
     
     FILE * fp;
     
-    char filename[50 + 50 + 20];
+    char filename[USERNAME_LENGTH + USERNAME_LENGTH + 20];
 
     sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, sender, receiver);
     
@@ -643,7 +643,7 @@ void user_received_message(char * receiver, char * sender, char * message, time_
     
     FILE * fp;
     
-    char filename[50 + 50 + 20];
+    char filename[USERNAME_LENGTH + USERNAME_LENGTH + 20];
 
     sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, receiver, sender);
     
@@ -667,7 +667,7 @@ void user_has_read(char * sender, char * receiver, time_t until_when){
 
     time_t t;
     
-    char filename[50 + 50 + 20];
+    char filename[USERNAME_LENGTH + USERNAME_LENGTH + 20];
     char message[BUF_LEN];
     char time_string[20];
     char has_read[3];

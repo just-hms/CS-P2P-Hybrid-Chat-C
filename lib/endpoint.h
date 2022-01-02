@@ -3,7 +3,7 @@
 struct connection_data{
     int sd;
     int port;
-    char username[50];
+    char username[USERNAME_LENGTH];
     struct connection_data * next;
     int logged;
 

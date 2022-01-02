@@ -2,16 +2,10 @@
 [] add group messages
 [] tell to the new user that he's been added to the chat (group or not)
 [] fix different methods to access file
-[] wtf is corrupted ???
-[] close old connection on login ???        //              or other things like this
-[] add prefix to out files
 
-[] find a way to use only one socket to talk
-[] out doesn't work
-
-[] user_has_read doesn't work (segmentation fault somewhere)
 [] on show the server sends only the message, not the timestamps
-[] on show use different dilimiters ???
 [] out also without login
 
 [] clear buffered files if empty
+
+[] print if user is online

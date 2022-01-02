@@ -15,6 +15,7 @@
 #define BUF_LEN 1024
 #define MAX_PARAMS_LEN 10
 #define SERVER_NAME "__server"
+#define USERNAME_LENGTH 50
 
 int receive_message(int, char *);
 int send_message(int, char*);

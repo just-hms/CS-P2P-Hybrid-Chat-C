@@ -9,11 +9,12 @@ int current_port;                       /* your port */
 char * current_username = NULL;         /* your current username */
 
 int in_chat = 0;
-char talking_to [50];                   /* FIX ME */
+char talking_to [USERNAME_LENGTH];                   /* FIX ME */
+
 char buf[BUF_LEN];
 
 void add_to_chat(connection_data * c){
-    /* TODO me*/
+    /* TODO */
 }
 
 void refresh_chat(){
@@ -21,7 +22,6 @@ void refresh_chat(){
         return;
     
     system("clear");
-
     printf("\n\nin chat with {%s}\n\n", talking_to);
 
     user_print_chat(current_username, talking_to);
@@ -87,8 +87,6 @@ void handle_chat(char * command, char ** params, int len, char * raw){
             return;
         }
 
-        /* TODO create group chat with maybe an id */  
-        
         if(strcmp(current_username, params[0]) ==  0){
             printf("error can't chat with yourself\n");
             return;
@@ -168,10 +166,12 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         printf("sorry both the server and {%s} are offline...", talking_to);
         return;
     }
+
     if(strcmp(response, "error") == 0){
         printf("error comunicating with the server", talking_to);
         return;
     }
+
     if(strcmp(response, "offline") == 0){
         user_sent_message(current_username, talking_to, raw, get_current_time(), 0);
         refresh_chat();
