@@ -11,6 +11,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <sys/stat.h>
 
 #define BUF_LEN 1024
 #define MAX_PARAMS_LEN 10

@@ -1,5 +1,17 @@
 #include "io.h"
 
+char base_directory[USERNAME_LENGTH + 20];
+
+void user_create_folder(char * username){
+    struct stat st = {0};
+
+    sprintf(base_directory, "%s%s", USER_PREFIX, username);
+
+    if (stat(base_directory, &st) == -1) {
+        mkdir(base_directory, 0755);
+    }
+}
+
 time_t get_current_time(){
 
     char * buf[256];
@@ -222,6 +234,7 @@ char * user_show(char * receiver, char * sender){
     char * line = NULL;
     char * buf;
     int count = 0;
+    int new_file_lines_count = 0;
 
     int len;
     
@@ -273,6 +286,8 @@ char * user_show(char * receiver, char * sender){
             message, 
             timestamp_string
         );
+
+        new_file_lines_count++;
         
     }
 
@@ -283,7 +298,12 @@ char * user_show(char * receiver, char * sender){
 
 
     remove(filename);
-    rename(SERVER_TMP_FILE, filename);
+
+    if(new_file_lines_count > 0){
+        rename(SERVER_TMP_FILE, filename);
+    }else{
+        remove(SERVER_TMP_FILE);
+    }
 
     return buf;
 }
@@ -304,7 +324,7 @@ char * user_hanging(char * receiver){
     char username[USERNAME_LENGTH];
     char timestamp_string[20];
     /* TODO explain this */
-    char count_sting[20];
+    char count_string[20];
     char * line = NULL;
     char * buf;
     int found = 0;
@@ -376,8 +396,8 @@ char * user_hanging(char * receiver){
         strcat(buf, c->username);
         strcat(buf, " ");
 
-        sprintf(count_sting, "%d", c->count);
-        strcat(buf, count_sting);
+        sprintf(count_string, "%d", c->count);
+        strcat(buf, count_string);
         strcat(buf, " ");
         
         strcat(buf, c->timestamp);
@@ -492,7 +512,7 @@ time_t get_out_time(char * username){
 
     sprintf(filename, "%s-%s.txt\0", OUT_PREFIX, username);
     
-    fd = fopen(username, "r");
+    fd = fopen(filename, "r");
 
     if(fd == NULL)
         return -1;
@@ -506,17 +526,18 @@ time_t get_out_time(char * username){
 }
 
 void clear_out_time(char * username){
+    
     char filename[100];
 
     sprintf(filename, "%s-%s.txt\0", OUT_PREFIX, username);
-    
+        
     remove(filename);
 }
 
-void user_print_chat(char * receiver, char * sender){
+void user_print_chat(char * sender){
     FILE * fp;
     
-    char filename[USERNAME_LENGTH + USERNAME_LENGTH + 20];
+    char filename[20 + USERNAME_LENGTH + USERNAME_LENGTH + 20];
     char sender_to_print [USERNAME_LENGTH];
     char message [100];
     char timestamp_string[USERNAME_LENGTH];
@@ -525,7 +546,7 @@ void user_print_chat(char * receiver, char * sender){
     int len = 0;
     int i;
 
-    sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, receiver, sender);
+    sprintf(filename, "%s/%s-%s.txt\0", base_directory, CHAT_PREFIX, sender);
 
     fp = fopen(filename, "r");
     if (fp == NULL)
@@ -549,7 +570,7 @@ void user_print_chat(char * receiver, char * sender){
 time_t user_get_buffered_has_read_time(char * sender, char * receiver){
     
     FILE *fd;
-    char filename[100];
+    char filename[200];
     time_t t;
     char time_string[20];
 
@@ -572,8 +593,6 @@ time_t user_get_buffered_has_read_time(char * sender, char * receiver){
 
     return t;
 }
-
-/* overwites cause last is more important */
 
 void user_buffer_has_read(char * receiver, char * sender){
     
@@ -617,13 +636,13 @@ void user_buffer_message(char * sender, char * receiver, char * message, time_t 
     
 }
 
-void user_sent_message(char * sender, char * receiver, char * message, time_t timestamp, int is_receiver_online){
+void user_sent_message(char * receiver, char * message, time_t timestamp, int is_receiver_online){
     
     FILE * fp;
     
-    char filename[USERNAME_LENGTH + USERNAME_LENGTH + 20];
+    char filename[20 + USERNAME_LENGTH + USERNAME_LENGTH + 20];
 
-    sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, sender, receiver);
+    sprintf(filename, "%s/%s-%s.txt\0", base_directory, CHAT_PREFIX, receiver);
     
     fp = fopen(filename, "a");
     
@@ -639,13 +658,13 @@ void user_sent_message(char * sender, char * receiver, char * message, time_t ti
 
 }
 
-void user_received_message(char * receiver, char * sender, char * message, time_t timestamp){
+void user_received_message(char * sender, char * message, time_t timestamp){
     
     FILE * fp;
     
-    char filename[USERNAME_LENGTH + USERNAME_LENGTH + 20];
+    char filename[20 + USERNAME_LENGTH + USERNAME_LENGTH + 20];
 
-    sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, receiver, sender);
+    sprintf(filename, "%s/%s-%s.txt\0", base_directory, CHAT_PREFIX, sender);
     
     fp = fopen(filename, "a");
     
@@ -657,7 +676,7 @@ void user_received_message(char * receiver, char * sender, char * message, time_
     fclose(fp);
 }
 
-void user_has_read(char * sender, char * receiver, time_t until_when){
+void user_has_read(char * receiver, time_t until_when){
     
     FILE * fp;
     FILE * fTemp;
@@ -667,12 +686,12 @@ void user_has_read(char * sender, char * receiver, time_t until_when){
 
     time_t t;
     
-    char filename[USERNAME_LENGTH + USERNAME_LENGTH + 20];
+    char filename[20 + USERNAME_LENGTH + USERNAME_LENGTH + 20];
     char message[BUF_LEN];
     char time_string[20];
     char has_read[3];
 
-    sprintf(filename, "%s-%s-%s.txt\0", CHAT_PREFIX, sender, receiver);
+    sprintf(filename, "%s/%s-%s.txt\0", base_directory, CHAT_PREFIX, receiver);
     
     fp = fopen(filename, "r");
     fTemp = fopen(CLIENT_TMP_FILE, "w"); 
@@ -708,9 +727,71 @@ void user_has_read(char * sender, char * receiver, time_t until_when){
     return;
 }
 
-int is_in_contacts(char * owner, char* username){
+int is_in_contacts(char* username){
     
     /* TODO */
     
     return 1;
+}
+
+void user_print_group_chat(time_t group_id){
+    FILE * fp;
+    char * line = NULL;
+    int len = 0;
+    
+    
+    char filename[USERNAME_LENGTH + 20 + 20 + 5];
+
+    sprintf(filename, "%s/%s-%ld\0", base_directory, GROUP_CHAT_PREFIX, group_id);
+    
+    fp = fopen(filename, "r");
+    
+    if (fp == NULL)
+        return;
+
+    while (getline(&line, &len, fp) != -1) {
+        printf("%s", line);
+    }
+
+    fclose(fp);
+
+    if (line)
+        free(line);
+
+    return;
+}
+
+void user_sent_group_message(time_t group_id, char * message){
+    FILE * fp;
+    
+    char filename[USERNAME_LENGTH + 20 + 5];
+
+    sprintf(filename, "%s/%s-%ld\0", base_directory, GROUP_CHAT_PREFIX, group_id);
+    
+    fp = fopen(filename, "a");
+    
+    if (fp == NULL)
+        return;
+    
+    fprintf(fp, "%s\n", message);
+
+    fclose(fp);
+
+}
+
+void user_receive_group_message(time_t group_id, char * sender, char * message){
+    FILE * fp;
+    
+    char filename[USERNAME_LENGTH + 20 + 5];
+
+    sprintf(filename, "%s/%s-%ld\0", base_directory, GROUP_CHAT_PREFIX, group_id);
+    
+    fp = fopen(filename, "a");
+    
+    if (fp == NULL)
+        return;
+    
+    fprintf(fp, "%s := %s\n", sender, message);
+
+    fclose(fp);
 }

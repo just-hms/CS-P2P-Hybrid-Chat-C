@@ -6,6 +6,5 @@
 [] on show the server sends only the message, not the timestamps
 [] out also without login
 
-[] clear buffered files if empty
+[] server clear buffered files if empty
 
-[] print if user is online

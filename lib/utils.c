@@ -75,6 +75,8 @@ char * replace_n_with_0(char * string){
             string[i] = '\0';
             return string;
         }
+        if(string[i] == '\0')
+            return string;
     }
     
 }

@@ -234,19 +234,11 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
         if(!user_exists(params[0]))
             return NULL;
-        /* should never happen */
         
-        printf("kek\n");
         if(c == NULL)
             return NULL;
         
-        printf("kek\n");
-
         t = user_get_buffered_has_read_time(c->username, params[0]);
-        printf("kek\n");
-        
-
-        printf("timestamp := %ld\n", t);
 
         if(t != -1){
             printf("lol\n");
@@ -260,10 +252,26 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
             );
         }
 
-        printf("lolz\n");
-
-
         return NULL;
+    }
+
+    if(strcmp(request, "get_user_port") == 0){
+        
+        if(len != 1)
+            return build_string("error");
+        
+        if(!user_exists(params[0]))
+            return build_string("error");
+        
+        c = find_connection_by_username(params[0]);
+        
+        if(c != NULL){
+            port = user_get_session(c->username);
+            sprintf(buf, "%d", port);
+            return build_string(buf);
+        }
+        
+        return build_string("-1");
     }
 }
 

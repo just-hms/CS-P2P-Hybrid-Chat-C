@@ -3,39 +3,197 @@
 
 #include "./../lib/utils.h"
 
-int default_port = 4242;                /* server default port*/
+struct chat_data{
+    char username[USERNAME_LENGTH];
+    int online;
+    struct chat_data * next;    
+} typedef chat_data;
+
+int server_port = 4242;                 /* server port*/
 
 int current_port;                       /* your port */
 char * current_username = NULL;         /* your current username */
 
-int in_chat = 0;
-char talking_to [USERNAME_LENGTH];                   /* FIX ME */
+int talking_to_count = 0;
+chat_data * talking_to = NULL;
+time_t group_id = -1;
+int in_group() { return group_id != -1; }
 
 char buf[BUF_LEN];
 
-void add_to_chat(connection_data * c){
-    /* TODO */
+void clear_chatters(){
+    chat_data * cursor;
+    chat_data * to_delete;
+    
+    cursor = talking_to;
+    talking_to_count = 0;
+    group_id = -1;
+
+    while (cursor){
+        to_delete = cursor;
+        cursor = cursor->next;
+        free(to_delete);
+    }
+    talking_to = NULL;
+    
 }
 
 void refresh_chat(){
-    if(!in_chat)
+    
+    chat_data * cursor;
+    if(talking_to_count == 0)
         return;
     
     system("clear");
-    printf("\n\nin chat with {%s}\n\n", talking_to);
-
-    user_print_chat(current_username, talking_to);
-}
-void open_chat(char * username){
     
-    in_chat = 1;
-    strcpy(talking_to, username);
+    if(!in_group()){
+        
+        printf("in chat with {%s}\n\n", talking_to->username);
+
+        user_print_chat(talking_to->username);
+        return;
+    }
+    
+    /* group chat */
+
+    if(talking_to > 0){
+
+        printf("in group chat with {");
+        cursor = talking_to;
+        
+        while (cursor){
+            printf("%s, ", cursor->username);
+            cursor = cursor->next;
+        }
+        printf("\b\b}\n\n");
+    
+    }else{
+
+        printf("in group chat alone\n\n");
+    }
+    
+    user_print_group_chat(group_id);
+
+}
+
+void group_quit(connection_data * c){
+    chat_data * cursor;
+    chat_data * last;
+
+    if(talking_to == NULL)
+        return;
+
+    cursor = talking_to;
+
+    if(strcmp(cursor->username, c->username) == 0){
+        talking_to  = talking_to->next;
+        free(cursor);
+        cursor = NULL;
+        refresh_chat();
+        return;
+    }
+
+    while (cursor){
+        
+        if(strcmp(cursor->username, c->username) == 0){
+
+            last->next = cursor->next;
+            free(cursor);
+            cursor = NULL;
+            refresh_chat();
+            return;
+        }
+
+        last = cursor;
+        cursor = cursor->next;
+    }
+    
+}
+
+void add_to_chat(char * username, connection_data * new_member, int echo){
+
+    chat_data * cursor;
+
+    connection_data * cursor_data;
+
+    if(strcmp(current_username, username) ==  0){
+        printf("error can't chat with yourself\n");
+        return;
+    }
+
+    /* TODO decide this */
+    
+    if(!is_in_contacts(username) && talking_to_count == 1 && echo){
+        printf("error %s is not in your contacts\n", username);
+        return;
+    }
+
+    chat_data * new_chatter;
+    new_chatter = malloc(sizeof(chat_data));
+    strcpy(new_chatter->username, username);
+
+    if(talking_to_count == 0){
+        talking_to = new_chatter;
+        new_chatter->next = NULL;
+        talking_to_count++;
+        refresh_chat();
+        return;
+    }
+
+    if(group_id == -1){
+
+        cursor_data = find_connection_by_username(talking_to->username);
+        if(cursor_data == NULL){
+            printf("sorry to start a group chat make sure that who you're talking to is online...\n");
+            return;
+        }
+
+        group_id = get_current_time();
+    }
+
+    /* tell all the others that you added him */
+    talking_to_count++;
+    
+    if(echo){
+        
+        cursor = talking_to;
+        
+        while (cursor){
+
+            cursor_data = find_connection_by_username(cursor->username);
+            
+            sprintf(buf, "group_add|%ld|%s|%d", group_id, new_member->username, new_member->port);
+            
+            make_request(
+                cursor_data,
+                buf,
+                0
+            );
+
+            cursor = cursor->next;
+        }    
+
+
+        sprintf(buf, "group_member|%ld|%s|%d", group_id, current_username, current_port);
+
+        make_request(
+            new_member,
+            buf,
+            0
+        );
+    }
+
+
+    new_chatter->next = talking_to;
+    talking_to = new_chatter;
+
     refresh_chat();
 }
 
 void handle_chat(char * command, char ** params, int len, char * raw){
     
     connection_data * c;
+    chat_data * cursor;
     
     char * message;
     char * response;
@@ -45,9 +203,25 @@ void handle_chat(char * command, char ** params, int len, char * raw){
     /* quit the chat */    
 
     if(strcmp(command, "\\q") == 0){     
-        in_chat = 0;
         system("clear");
-        /* TODO show commands ???*/
+        
+        if(in_group){
+
+            cursor = talking_to;
+            while (cursor){
+                c = find_connection_by_username(cursor->username);
+
+                make_request(
+                    c,
+                    "group_quit",
+                    0
+                );
+
+                cursor = cursor->next;
+            }
+
+        }
+        clear_chatters();
         return;
     }
 
@@ -60,7 +234,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
             return;
         }
 
-        c = connection(default_port);
+        c = connection(server_port);
 
         response = make_request(
             c,
@@ -86,22 +260,22 @@ void handle_chat(char * command, char ** params, int len, char * raw){
             printf("error wrong format, type:\n\n\\a username\n\n");
             return;
         }
-
-        if(strcmp(current_username, params[0]) ==  0){
-            printf("error can't chat with yourself\n");
-            return;
-        }
         
+        /* TODO check if who you're talinkg to is online */
+
         c = find_connection_by_username(params[0]);
 
+        
+        /* if you're already connected with him just add it to the chat */
+        
         if(c != NULL){
-            add_to_chat(c);
+            add_to_chat(c->username, c, 1);
             return;
         }
-        
+
         sprintf(buf, "get_user_port|%s\0", params[0]);
 
-        c = connection(default_port);
+        c = connection(server_port);
         
         response = make_request(c, buf, 1);
 
@@ -125,81 +299,132 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         c = connection(port);
         
         connection_set_username(c->sd, params[0]);
-        add_to_chat(c);
+        add_to_chat(c->username, c, 1);
 
         return;
     }
 
-    /* write a message */
-    
-    c = find_connection_by_username(talking_to);
+    /* write a message */ 
+    replace_n_with_0(raw);
 
-    sprintf(
-        buf,
-        "message|%s|%s|%s|%ld",
-        current_username,
-        talking_to,
-        replace_n_with_0(raw),
-        get_current_time()
-    );
+    if(!in_group()){
 
-    if(c != NULL){
+        c = find_connection_by_username(talking_to->username);
+
+        sprintf(
+            buf,
+            "message|%s|%s|%s|%ld",
+            current_username,
+            talking_to->username,
+            raw,
+            get_current_time()
+        );
+
+        /*  
+            if you already send a memssage to the receiver 
+            and he is online send the message to him 
+        */
+
+        if(c != NULL){
+
+            make_request(
+                c,
+                buf,
+                0
+            );
+
+            user_sent_message(talking_to->username, raw, get_current_time(), 1);
+            refresh_chat();
+            return;
+        }
+
+        /*
+            if not send the message to the server
+            and wait for the ack
+        */
+
+        c = connection(server_port);
+
+        response = make_request(
+            c,
+            buf,
+            1
+        );
+
+        if(response == NULL){
+            printf("sorry both the server and {%s} are offline...", talking_to->username);
+            return;
+        }
+
+        if(strcmp(response, "error") == 0){
+            printf("error comunicating with the server", talking_to->username);
+            return;
+        }
+
+        if(strcmp(response, "offline") == 0){
+            user_sent_message(talking_to->username, raw, get_current_time(), 0);
+            refresh_chat();
+            return;
+        }
+
+        port = atoi(response);
+        
+        /* 
+            now that you know that he's online connect to him 
+            and tell him who you are
+        */
+
+        c = connection(port);
+
+        if(c == NULL){
+
+            user_sent_message(talking_to->username, raw, get_current_time(), 0);
+            refresh_chat();
+            return;
+        }
+
+        connection_set_username(c->sd, talking_to->username);
+        
+        sprintf(buf, "im|%s|%d\0", current_username, current_port);
+
         make_request(
             c,
             buf,
             0
         );
-        user_sent_message(current_username, talking_to, raw, get_current_time(), 1);
+
+        user_sent_message(talking_to->username, raw, get_current_time(), 1);
+        
         refresh_chat();
         return;
     }
 
-    c = connection(default_port);
+    /* send group message */
 
-    response = make_request(
-        c,
-        buf,
-        1
-    );
-
-    if(response == NULL){
-        printf("sorry both the server and {%s} are offline...", talking_to);
-        return;
-    }
-
-    if(strcmp(response, "error") == 0){
-        printf("error comunicating with the server", talking_to);
-        return;
-    }
-
-    if(strcmp(response, "offline") == 0){
-        user_sent_message(current_username, talking_to, raw, get_current_time(), 0);
-        refresh_chat();
-        return;
-    }
-
-    port = atoi(response);
+    cursor = talking_to;
     
-    c = connection(port);
+    while (cursor){
+        
+        c = find_connection_by_username(cursor->username);
 
-    if(c == NULL){
-        user_sent_message(current_username, talking_to, raw, get_current_time(), 0);
-        refresh_chat();
-        return;
+        sprintf(
+            buf,
+            "group_message|%s|%s",
+            current_username,
+            raw
+        );
+        
+        make_request(
+            c,
+            buf,
+            0
+        );
+
+        cursor = cursor->next;
     }
 
-    connection_set_username(c->sd, talking_to);
+    user_sent_group_message(group_id, raw);
     
-    sprintf(buf, "im|%s\0", current_username);
-
-    make_request(
-        c,
-        buf,
-        0
-    );
-
-    user_sent_message(current_username, talking_to, raw, get_current_time(), 1);
-    refresh_chat();
 }
 
 int input(char * command, char ** params, int len, char * raw){
@@ -212,7 +437,7 @@ int input(char * command, char ** params, int len, char * raw){
     if(command == NULL)
         return 0;
     
-    if(in_chat != 0){
+    if(talking_to_count != 0){
         handle_chat(command, params, len, raw);
         return 0;
     }
@@ -232,9 +457,9 @@ int input(char * command, char ** params, int len, char * raw){
 
         sprintf(buf, "%s|%s|%s\0", command, params[0], params[1]);
                 
-        default_port = (len == 3) ? atoi(params[2]) : default_port;
+        server_port = (len == 3) ? atoi(params[2]) : server_port;
         
-        c = connection(default_port);
+        c = connection(server_port);
         
         response = make_request(c, buf, 1);
 
@@ -286,9 +511,9 @@ int input(char * command, char ** params, int len, char * raw){
             get_out_time(params[0])
         );
     
-        default_port = (len == 3) ? atoi(params[2]) : default_port;
+        server_port = (len == 3) ? atoi(params[2]) : server_port;
         
-        c = connection(default_port);
+        c = connection(server_port);
         
         response = make_request(c, buf, 1);
 
@@ -305,6 +530,8 @@ int input(char * command, char ** params, int len, char * raw){
             strcpy(current_username, params[0]);
 
             printf("congratulations {%s}, you're logged in!\n", params[0]);
+
+            user_create_folder(current_username);
 
             clear_out_time(params[0]);
             return 0;
@@ -340,7 +567,7 @@ int input(char * command, char ** params, int len, char * raw){
             return 0;
         }
 
-        c = connection(default_port);
+        c = connection(server_port);
         
         response = make_request(
             c, 
@@ -378,7 +605,7 @@ int input(char * command, char ** params, int len, char * raw){
             printf("can't show messages from you\n");
             return 0;
         }
-        c = connection(default_port);
+        c = connection(server_port);
         
         sprintf(buf, "show|%s", params[0]);
         
@@ -404,9 +631,7 @@ int input(char * command, char ** params, int len, char * raw){
             
             printf("%s := %s\n", params[0], message);
 
-            /* TODO server should send the timestamp */
-
-            user_received_message(current_username, params[0], message, get_current_time());
+            user_received_message(params[0], message, get_current_time());
             
             message = strtok(NULL, "\n");
         }
@@ -423,20 +648,16 @@ int input(char * command, char ** params, int len, char * raw){
             printf("error wrong format, type:\n\nchat username\n\n");
             return 0;
         }
-
+        
         if(strcmp(current_username, params[0]) ==  0){
             printf("error can't chat with yourself\n");
             return 0;
         }
-        
-        if(!is_in_contacts(current_username, params[0])){
-            printf("error %s is not in your contacts\n", params[0]);
-            return 0;
-        }
 
+        
         /* if server is online check if there are some buffered read messaged notification */
 
-        c = connection(default_port);
+        c = connection(server_port);
         
         sprintf(buf, "get_has_read|%s", params[0]);
 
@@ -448,7 +669,7 @@ int input(char * command, char ** params, int len, char * raw){
 
         /* open the chat anyway */
 
-        open_chat(params[0]);
+        add_to_chat(params[0], NULL, 1);
 
         return 0;
     }
@@ -463,9 +684,10 @@ int input(char * command, char ** params, int len, char * raw){
     }
 
     /* out */
+    
     if(strcmp(command, "out") == 0){
 
-        c = connection(default_port);
+        c = connection(server_port);
 
         if(c == NULL){
             printf("saving out time...\n");
@@ -484,6 +706,7 @@ int input(char * command, char ** params, int len, char * raw){
 char * get_request(char * request, char ** params, int len, int sd, char * raw){
     
     time_t t;
+    connection_data * c;
 
     /* message|from|to|message|timestamp??? */
     
@@ -499,13 +722,24 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
         sscanf(params[3], "%ld", &t);
 
-        user_received_message(current_username, params[0], params[2], t);
+        user_received_message(params[0], params[2], t);
 
-        if(in_chat == 0 || strcmp(params[0], talking_to) != 0){
+        if(talking_to_count == 0 || strcmp(params[0], talking_to->username) != 0){
             
             printf("you received a message from {%s}\n", params[0]);
             return NULL;
         }
+
+        refresh_chat();
+        return NULL;
+    }
+
+    if(strcmp(request, "group_message") == 0){
+
+        if(len != 2)
+            return NULL;
+
+        user_receive_group_message(group_id, params[0], params[1]);
 
         refresh_chat();
         return NULL;
@@ -518,9 +752,12 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         
         sscanf(params[1], "%ld", &t);
 
-        user_has_read(current_username, params[0], t);
+        user_has_read(params[0], t);
 
-        if(in_chat && strcmp(talking_to, params[0]) == 0)
+        if(in_group())
+            return NULL;
+
+        if(talking_to_count && strcmp(talking_to->username, params[0]) == 0)
             refresh_chat();
 
         return NULL;
@@ -528,13 +765,82 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
     if(strcmp(request, "im") == 0){
 
-        if(len != 1)
+        if(len != 2)
             return NULL;
 
-        connection_set_username(sd, params[0]);
+        c = find_connection_by_sd(sd);
+        connection_set_username(c->sd, params[0]);
+        c->port = atoi(params[1]);
 
         return NULL;
     }
+
+    if(strcmp(request, "group_add") == 0){
+                
+        if(len != 3)
+            return NULL;
+
+        sscanf(params[0],"%ld", &t);
+        
+        if(!in_group() || t != group_id){
+            group_id = t;
+            clear_chatters();
+
+            c = find_connection_by_sd(sd);
+            add_to_chat(c->username, c, 0);
+        }  
+    
+        c = connection(atoi(params[2]));
+
+        connection_set_username(c->sd, params[1]);
+
+        add_to_chat(params[1], c, 0);
+
+        sprintf(buf, "group_member|%ld|%s|%d", group_id, current_username, current_port);
+
+        make_request(
+            c,
+            buf,
+            0
+        );
+
+
+        return NULL;
+    
+    }
+    if(strcmp(request, "group_member") == 0){
+        if(len != 3)
+            return NULL;
+
+        sscanf(params[0], "%ld", &t);
+        
+        if(!in_group() || t != group_id){
+            clear_chatters();
+            group_id = t;
+        }  
+        
+
+        c = find_connection_by_sd(sd);
+        connection_set_username(c->sd, params[1]);
+        c->port = atoi(params[2]);
+        add_to_chat(params[1], c, 0);
+
+        return NULL;
+    }
+
+
+    if(strcmp(request, "group_quit") == 0){
+        
+        if(!in_group())
+            return NULL;
+
+        group_quit(
+            find_connection_by_sd(sd)
+        );
+
+        return NULL;
+    }
+
 
 }
 
@@ -544,16 +850,13 @@ void disconnected(int sd){
     
     connection_data * c;
 
-    c = find_connection_by_sd(sd);
+    c = find_connection_by_sd(sd); 
 
-    printf("[%d] disconnected\n", c->sd);
-    
-    if(c == NULL || c->port != default_port){
+    if(in_group()){
+        group_quit(c);
         return;
     }    
-
-    /* printf("server disconnected...\n"); */
-
+    
 }
 
 int main(int argc, char* argv[]){

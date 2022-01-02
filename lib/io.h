@@ -2,15 +2,18 @@
 #include <stdlib.h>
 #include "utils.h"
 
-#define USER_FILE "./server/stuff/user.txt"
-#define SESSION_FILE "./server/stuff/sessions.txt"
-#define SERVER_TMP_FILE "./server/stuff/tmp.txt"
-#define BUFFERED_MESSAGE_PREFIX "./server/stuff/buffered"
-#define BUFFERED_HAS_READ "./server/stuff/has_read"
+#define USER_FILE "./server/user.txt"
+#define SESSION_FILE "./server/sessions.txt"
+#define SERVER_TMP_FILE "./server/tmp.txt"
+#define BUFFERED_MESSAGE_PREFIX "./server/buffered"
+#define BUFFERED_HAS_READ "./server/has_read"
 
-#define CLIENT_TMP_FILE "./client/stuff/tmp.txt"
-#define OUT_PREFIX "./client/stuff/out"
-#define CHAT_PREFIX "./client/stuff/chat"
+#define USER_PREFIX "./client/"
+#define CLIENT_TMP_FILE "./client/tmp.txt"
+#define OUT_PREFIX "out"
+#define CHAT_PREFIX "chat"
+#define GROUP_CHAT_PREFIX "group_chat"
+
 
 time_t get_current_time();
 
@@ -35,12 +38,20 @@ time_t user_get_buffered_has_read_time(char *, char *);
 
 /* CLIENT */
 
-void save_out_time(char * );
-time_t get_out_time(char * );
-void user_print_chat(char *, char *);
+void user_create_folder(char *);
 
-void user_sent_message(char *, char *, char*, time_t, int);
-int is_in_contacts(char *, char*);
-void user_received_message(char *, char *, char *, time_t);
-void user_has_read(char *, char *, time_t);
+void save_out_time(char *);
+time_t get_out_time(char *);
+void clear_out_time(char *);
+
+void user_print_chat(char *);
+
+void user_sent_message(char *, char*, time_t, int);
+int is_in_contacts(char*);
+void user_received_message(char *, char *, time_t);
+void user_has_read(char *, time_t);
+
+void user_print_group_chat(time_t);
+void user_sent_group_message(time_t, char *);
+void user_receive_group_message(time_t, char *, char *);
 
