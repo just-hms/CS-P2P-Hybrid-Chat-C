@@ -152,10 +152,9 @@ void add_to_chat(char * username, connection_data * new_member, int echo){
         return;
     }
 
-    if(group_id == -1){
+    if(!in_group()){
 
-        cursor_data = find_connection_by_username(talking_to->username);
-        if(cursor_data == NULL){
+        if(find_connection_by_username(talking_to->username) == NULL){
             printf("sorry to start a group chat make sure that who you're talking to is online...\n");
             return;
         }
@@ -231,17 +230,19 @@ void handle_chat(char * command, char ** params, int len, char * raw){
             return;
         }
 
-        if(!in_group && !talking_to->online){
-            printf("make sure that who you're talking to is online...\n");
+        if(!in_group() && find_connection_by_username(talking_to->username) == NULL){
+            printf("sorry to share a file make sure that who you're talking to is online...\n");
             return;
         }
         
         cursor = talking_to;
         
         while (cursor){
-            
-            c = find_connection_by_username(cursor->username);
-            send_file(c, params[0]);
+
+            send_file(
+                find_connection_by_username(cursor->username), 
+                params[0]
+            );
 
             cursor = cursor->next;
         }
@@ -870,13 +871,13 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         return NULL;
     }
 
-    if(strcmp(request, "file") == 0){
+    if(strcmp(request, "share") == 0){
         
         if(len != 1)
             return NULL;
         
         c = find_connection_by_sd(sd);
-        printf("{%s} is sending you a file called %s\n", params[0], c->username);
+        printf("{%s} is sending you a file called %s\n", c->username, params[0]);
 
         receive_file(c, params[0]);
         

@@ -419,48 +419,52 @@ void send_file(connection_data * c, char * filename){
     
     /* FIX ME*/
     
-    char actaul_filename[100];
+    char actual_filename[100];
     
     FILE *fp;
     size_t read;
     size_t read_net;
     int res;
  
-    sprintf(actaul_filename, "%s/%s", get_base_directory(), filename);
-    
-    /* send filename */
-    
-    sprintf(buf, "file|%s", actaul_filename);
-    make_request(c, buf, 0);
+    sprintf(actual_filename, "%s/%s", get_base_directory(), filename);
 
-    /* send the actaual file */
+    /* check if the file exists */
     
-    fp = fopen(actaul_filename, "rb");
+    fp = fopen(actual_filename, "r");
 
     if(fp == NULL){
         printf("sorry the file you specified doesn't exists\n");
         return;
     }
 
+    /* send filename */
+    
+    sprintf(buf, "share|%s", filename);
+    make_request(c, buf, 0);
+
+    /* send the actaual file */
+
+
     while (1){
+        
         read = fread(buf, sizeof(uint8_t), BUF_LEN, fp);
         
-        if(read == EOF)
-            break; 
-
         read_net = htonl(read);
-
+        
         res = send(c->sd, (void *)&read_net, sizeof(size_t), 0);
-
-        if(res <= 0){
-            printf("error sending file to {%s}\n", c->username);
+        
+        if(res < 0){
+            printf("error sending the file chunk dimension to {%s}\n", c->username);
             return;
         }
 
+        if(read == EOF || read == 0)
+            break; 
+
         res = send(c->sd, (void*) buf, read, 0);
         
-        if(res <= 0){
-            printf("error sending file to {%s}\n", c->username);
+        if(res < 0){
+            printf("error sending file chunk to {%s}\n", c->username);
             return;
         }
     }
@@ -473,40 +477,42 @@ void receive_file(connection_data * c, char * filename){
     
     /* FIX ME*/
     
-    char actaul_filename[100];
+    char actual_filename[100];
     
     FILE *fp;
     size_t read;
     int res;
  
-    sprintf(actaul_filename, "%s/%s", get_base_directory(), filename);
+    sprintf(actual_filename, "%s/%s", get_base_directory(), filename);
 
     /* send the actaual file */
     
-    fp = fopen(actaul_filename, "ab");
-
+    fp = fopen(actual_filename, "a");
+    
     if(fp == NULL){
-        printf("sorry the path is wrong\n");
+        printf("sorry error saving the file...\n");
         return;
     }
 
     while (1){
-
         res = recv(c->sd, (void *)&read, sizeof(size_t), 0);
         
         read = ntohl(read);
 
         if(res <= 0){
-            printf("error receiving file from {%s}\n", c->username);
+            printf("error receiving the file chunk dimension from {%s}\n", c->username);
             return;
         }
 
+        if(read == EOF || read == 0)
+            break;
+
         res = recv(c->sd, (void*) buf, read, 0);
 
-        fwrite(buf, sizeof(size_t), read, fp);
+        (buf, sizeof(size_t), read, fp);
              
         if(res <= 0){
-            printf("error receiving file from {%s}\n", c->username);
+            printf("error receiving the file chunk from {%s}\n", c->username);
             return;
         }
     }
