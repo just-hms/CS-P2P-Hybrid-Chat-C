@@ -425,6 +425,9 @@ void send_file(connection_data * c, char * filename){
     size_t read;
     size_t read_net;
     int res;
+    int sent = 0;
+
+    int tmp = 0;
  
     sprintf(actual_filename, "%s/%s", get_base_directory(), filename);
 
@@ -444,37 +447,44 @@ void send_file(connection_data * c, char * filename){
 
     /* send the actaual file */
 
-
     while (1){
+
+        tmp++;
         
         memset(buf, 0, BUF_LEN);
         read = fread(buf, sizeof(uint8_t), BUF_LEN, fp);
         
-        printf("dim := %lu\n", read);
-        
         read_net = htonl(read);
         
-        printf("dim_net := %lu\n", read_net);
-
         res = send(c->sd, (void *)&read_net, sizeof(size_t), 0);
-        
+
         if(res < 0){
             printf("error sending the file chunk dimension to {%s}\n", c->username);
             return;
         }
-
+        
         if(read == EOF || read == 0)
             break; 
-
-        res = send(c->sd, (void*) buf, read, 0);
         
-        if(res < 0){
-            printf("error sending file chunk to {%s}\n", c->username);
-            return;
-        }
+        sent = 0;
+        
+        do
+        {
+
+            res = send(c->sd, (void*) &(buf[sent]), read - sent, 0);
+            
+            if(res < 0){
+                printf("error sending file chunk to {%s}\n", c->username);
+                return;
+            }
+            
+            sent+= res;
+
+        } while (sent < read);
     }
     
     fclose(fp);
+
 }
 
 void receive_file(connection_data * c, char * filename){
@@ -487,12 +497,13 @@ void receive_file(connection_data * c, char * filename){
     FILE *fp;
     size_t read;
     int res;
- 
+    int received = 0;
+
     sprintf(actual_filename, "%s/%s", get_base_directory(), filename);
 
     /* send the actaual file */
     
-    fp = fopen(actual_filename, "a");
+    fp = fopen(actual_filename, "w");
     
     if(fp == NULL){
         printf("sorry error saving the file...\n");
@@ -500,14 +511,10 @@ void receive_file(connection_data * c, char * filename){
     }
 
     while (1){
-
-        res = recv(c->sd, (void *)&read, sizeof(size_t), 0);
         
-        printf("dim_net := %lu\n", read);
+        res = recv(c->sd, (void *)&read, sizeof(size_t), 0);
 
         read = ntohl(read);
-
-        printf("dim := %lu\n", read);
 
         if(res <= 0){
             printf("error receiving the file chunk dimension from {%s}\n", c->username);
@@ -518,18 +525,26 @@ void receive_file(connection_data * c, char * filename){
             break;
 
         memset(buf, 0, BUF_LEN);
+        
+        received = 0;
 
-        res = recv(c->sd, (void*) buf, read, 0);
+        do
+        {
 
-        if(res <= 0){
-            printf("%ld\n", read);
-            printf("error receiving the file chunk from {%s}\n", c->username);
-            return;
-        }
+            res = recv(c->sd, (void*) &(buf[received]), read - received, 0);
+
+            if(res <= 0){
+                printf("%ld\n", read);
+                printf("error receiving the file chunk from {%s}\n", c->username);
+                return;
+            }
+
+            received += res;
+
+        } while (received < read);
 
         fwrite(buf, sizeof(uint8_t), read,  fp);
-             
     }
-    
     fclose(fp);
+
 }

@@ -247,6 +247,8 @@ void handle_chat(char * command, char ** params, int len, char * raw){
             cursor = cursor->next;
         }
 
+        printf("sent!\n");
+
         return;
         
     }
@@ -880,6 +882,8 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         printf("{%s} is sending you a file called %s\n", c->username, params[0]);
 
         receive_file(c, params[0]);
+
+        printf("received!\n");
         
         return NULL;
     }
