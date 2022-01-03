@@ -8,3 +8,4 @@
 
 [] server clear buffered files if empty
 
+[] on add check if he's already there

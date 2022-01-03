@@ -18,4 +18,7 @@ connection_data * find_connection_by_port(int);
 connection_data * find_connection_by_sd(int);
 void connection_set_username(int sd, char * username);
 
+void send_file(connection_data*, char*);
+void receive_file(connection_data*,char*);
+
 void close_all_connections();

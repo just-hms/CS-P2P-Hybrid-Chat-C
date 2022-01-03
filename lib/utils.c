@@ -1,6 +1,22 @@
 
 #include "utils.h"
 
+char base_directory[USERNAME_LENGTH + 20];
+
+char * get_base_directory(){
+    return base_directory;
+}
+
+void user_create_folder(char * username){
+    struct stat st = {0};
+    
+    sprintf(base_directory, "%s%s", USER_PREFIX, username);
+
+    if (stat(base_directory, &st) == -1) {
+        mkdir(base_directory, 0755);
+    }
+}
+
 int receive_message(int i, char * buf){
 
     int res;

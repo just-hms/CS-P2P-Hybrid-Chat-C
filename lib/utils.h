@@ -18,6 +18,23 @@
 #define SERVER_NAME "__server"
 #define USERNAME_LENGTH 50
 
+
+#define USER_FILE "./server/user.txt"
+#define SESSION_FILE "./server/sessions.txt"
+#define SERVER_TMP_FILE "./server/tmp.txt"
+#define BUFFERED_MESSAGE_PREFIX "./server/buffered"
+#define BUFFERED_HAS_READ "./server/has_read"
+
+#define USER_PREFIX "./client/"
+#define CLIENT_TMP_FILE "./client/tmp.txt"
+#define OUT_PREFIX "out"
+#define CHAT_PREFIX "chat"
+#define GROUP_CHAT_PREFIX "group_chat"
+
+
+char * get_base_directory();
+void user_create_folder(char *);
+
 int receive_message(int, char *);
 int send_message(int, char*);
 int starts_with(char *, char *);

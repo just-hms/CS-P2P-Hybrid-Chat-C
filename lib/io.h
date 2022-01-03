@@ -2,19 +2,6 @@
 #include <stdlib.h>
 #include "utils.h"
 
-#define USER_FILE "./server/user.txt"
-#define SESSION_FILE "./server/sessions.txt"
-#define SERVER_TMP_FILE "./server/tmp.txt"
-#define BUFFERED_MESSAGE_PREFIX "./server/buffered"
-#define BUFFERED_HAS_READ "./server/has_read"
-
-#define USER_PREFIX "./client/"
-#define CLIENT_TMP_FILE "./client/tmp.txt"
-#define OUT_PREFIX "out"
-#define CHAT_PREFIX "chat"
-#define GROUP_CHAT_PREFIX "group_chat"
-
-
 time_t get_current_time();
 
 /* SERVER */

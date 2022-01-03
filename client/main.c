@@ -25,6 +25,18 @@ void clear_chatters(){
     chat_data * cursor;
     chat_data * to_delete;
     
+    connection_data * c;
+
+    if(in_group){
+
+        cursor = talking_to;
+        while (cursor){
+            c = find_connection_by_username(cursor->username);
+            make_request(c, "group_quit", 0);
+            cursor = cursor->next;
+        }
+    }
+
     cursor = talking_to;
     talking_to_count = 0;
     group_id = -1;
@@ -48,7 +60,7 @@ void refresh_chat(){
     
     if(!in_group()){
         
-        printf("in chat with {%s}\n\n", talking_to->username);
+        printf("{%s} | in chat with {%s}\n\n", current_username, talking_to->username);
 
         user_print_chat(talking_to->username);
         return;
@@ -58,7 +70,7 @@ void refresh_chat(){
 
     if(talking_to > 0){
 
-        printf("in group chat with {");
+        printf("{%s} | in group chat with {", current_username);
         cursor = talking_to;
         
         while (cursor){
@@ -69,7 +81,7 @@ void refresh_chat(){
     
     }else{
 
-        printf("in group chat alone\n\n");
+        printf("{%s} | in group chat alone\n\n", current_username);
     }
     
     user_print_group_chat(group_id);
@@ -203,26 +215,39 @@ void handle_chat(char * command, char ** params, int len, char * raw){
     /* quit the chat */    
 
     if(strcmp(command, "\\q") == 0){     
+        if(len != 0){
+            printf("error wrong format, type:\n\n\\q\n\n");
+            return;
+        }
         system("clear");
         
-        if(in_group){
-
-            cursor = talking_to;
-            while (cursor){
-                c = find_connection_by_username(cursor->username);
-
-                make_request(
-                    c,
-                    "group_quit",
-                    0
-                );
-
-                cursor = cursor->next;
-            }
-
-        }
         clear_chatters();
         return;
+    }
+
+    if(strcmp(command, "share") == 0){
+        if(len != 1){
+            printf("error wrong format, type:\n\nshare filename\n\n");
+            return;
+        }
+
+        if(!in_group && !talking_to->online){
+            printf("make sure that who you're talking to is online...\n");
+            return;
+        }
+        
+        cursor = talking_to;
+        
+        while (cursor){
+            
+            c = find_connection_by_username(cursor->username);
+            send_file(c, params[0]);
+
+            cursor = cursor->next;
+        }
+
+        return;
+        
     }
 
     /* print list of online users */    
@@ -261,8 +286,17 @@ void handle_chat(char * command, char ** params, int len, char * raw){
             return;
         }
         
-        /* TODO check if who you're talinkg to is online */
+        cursor  = talking_to;
+        while (cursor){
+            if(strcmp(cursor->username, params[0]) == 0){
+                printf("error you're already talking to {%s}\n", params[0]);
+                return;
+            }
 
+            cursor = cursor->next;
+        }
+        
+        
         c = find_connection_by_username(params[0]);
 
         
@@ -285,14 +319,14 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         }
 
         if(strcmp(response, "error") == 0){
-            printf("sorry there is no one by the name of %s!\n", params[0]);
+            printf("sorry there is no one by the name of {%s}!\n", params[0]);
             return;
         }
 
         port = atoi(response);
 
         if(port == -1){
-            printf("sorry %s is offline\n", params[0]);
+            printf("sorry {%s} is offline\n", params[0]);
             return;
         }
 
@@ -305,7 +339,6 @@ void handle_chat(char * command, char ** params, int len, char * raw){
     }
 
     /* write a message */ 
-    replace_n_with_0(raw);
 
     if(!in_group()){
 
@@ -553,6 +586,26 @@ int input(char * command, char ** params, int len, char * raw){
         return 0;
     }
 
+    /* out */
+
+    if(strcmp(command, "out") == 0){
+
+        if(current_username == NULL){
+            close_all_connections();
+            return 1;
+        }
+
+        c = connection(server_port);
+
+        if(c == NULL){
+            printf("saving out time...\n");
+            save_out_time(current_username);
+        }
+
+        close_all_connections();
+        return 1;
+    }
+    
     if(current_username == NULL){
         printf("you must do the login before doing any action beside login or signup\n");
         return 0;
@@ -678,25 +731,10 @@ int input(char * command, char ** params, int len, char * raw){
 
     if(strcmp(command, "share") == 0){
         
-        /* TODO */
-        
+        printf("open a chat with someone to share a file...\n");
         return 0;
     }
 
-    /* out */
-    
-    if(strcmp(command, "out") == 0){
-
-        c = connection(server_port);
-
-        if(c == NULL){
-            printf("saving out time...\n");
-            save_out_time(current_username);
-        }
-
-        close_all_connections();
-        return 1;
-    }
     
     printf("sorry %s is not a valid command\n", command);
     
@@ -791,20 +829,11 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         }  
     
         c = connection(atoi(params[2]));
-
         connection_set_username(c->sd, params[1]);
-
         add_to_chat(params[1], c, 0);
 
         sprintf(buf, "group_member|%ld|%s|%d", group_id, current_username, current_port);
-
-        make_request(
-            c,
-            buf,
-            0
-        );
-
-
+        make_request(c, buf, 0);
         return NULL;
     
     }
@@ -830,14 +859,27 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
 
     if(strcmp(request, "group_quit") == 0){
-        
+        if(len != 0)
+            return NULL;
+
         if(!in_group())
             return NULL;
 
-        group_quit(
-            find_connection_by_sd(sd)
-        );
+        group_quit(find_connection_by_sd(sd));
 
+        return NULL;
+    }
+
+    if(strcmp(request, "file") == 0){
+        
+        if(len != 1)
+            return NULL;
+        
+        c = find_connection_by_sd(sd);
+        printf("{%s} is sending you a file called %s\n", params[0], c->username);
+
+        receive_file(c, params[0]);
+        
         return NULL;
     }
 
