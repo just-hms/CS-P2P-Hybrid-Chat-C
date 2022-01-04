@@ -1,11 +1,4 @@
 [] fix send & receive message
-[] add group messages
-[] tell to the new user that he's been added to the chat (group or not)
-[] fix different methods to access file
-
-[] on show the server sends only the message, not the timestamps
-[] out also without login
-
-[] server clear buffered files if empty
-
-[] on add check if he's already there
+[] hanging prints shit
+[] show prints shit
+[] start sessions doesn't work at first

@@ -88,7 +88,7 @@ void refresh_chat(){
     
     chat_data * cursor;
 
-    system("clear");
+    /* system("clear");*/
 
     if(!in_group() && talking_to_count == 1){
         
@@ -812,7 +812,8 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
     connection_data * c;
 
     /* message|from|to|message|timestamp??? */
-    
+    printf("%s\n", raw);
+
     if(request == NULL){
         return NULL;
     }

@@ -1,9 +1,7 @@
 #include "io.h"
 
 
-time_t get_current_time(){ 
-    return time(NULL); 
-}
+time_t get_current_time(){  return time(NULL); }
 
 char * find(char * username, char * filename){
     FILE * fp;
@@ -12,7 +10,7 @@ char * find(char * username, char * filename){
     int read;
 
     fp = fopen(filename, "r");
-    
+
     if (fp == NULL)
         return NULL;
 
@@ -37,9 +35,7 @@ char * find(char * username, char * filename){
 
 char * user_find(char * username){ return find(username, USER_FILE); }
 
-int user_exists(char * username){
-    return user_find(username) != NULL;
-}
+int user_exists(char * username){ return user_find(username) != NULL;}
 
 int user_add(char * username, char * password){
     FILE * fp;
@@ -143,11 +139,11 @@ void user_start_session(char * username, int port){
 
     fp = fopen(SESSION_FILE, "a");
     
-    if (fp == NULL)
+    if (fp == NULL){
+        printf("erro staring session of {%s}\n", username);
         return;
+    }
 
-    /* FIX ME*/
-    
     fprintf(
         fp,
         "%s %d %ld -1\n", 
@@ -281,7 +277,7 @@ char * user_show(char * receiver, char * sender){
         
     }
 
-    strcat(buf, "");
+    strcat(buf, "\0");
 
     fclose(fp);
     fclose(fTemp);
@@ -361,6 +357,7 @@ char * user_hanging(char * receiver){
         }
 
         /* if not insert it */
+
         count++;
 
         new_hanging = malloc(sizeof(hanging_message));
@@ -378,8 +375,9 @@ char * user_hanging(char * receiver){
         
     }
 
-    /* TODO explain this */
     buf = malloc(count * (USERNAME_LENGTH + 20 + 20 + 5));
+    
+    buf[0] = '\0';
     
     c = head;
 
@@ -398,7 +396,7 @@ char * user_hanging(char * receiver){
         free(to_remove);
     }
     
-    strcat(buf, "");
+    strcat(buf, "\0");
     return buf;
 }
 
@@ -469,7 +467,7 @@ char * user_get_online_list(int timestamp_and_port){
         }
     }   
 
-    strcat(buf, "");
+    strcat(buf, "\0");
     
     if (line)
         free(line);
@@ -557,7 +555,7 @@ void user_print_chat(char * sender){
 
 }
 
-time_t user_get_BUFFERED_HAS_READ_PREFIX_time(char * sender, char * receiver){
+time_t user_get_buffered_has_read_time(char * sender, char * receiver){
     
     FILE *fp;
     char filename[200];
@@ -684,7 +682,7 @@ void user_has_read(char * receiver, time_t until_when){
     char has_read[3];
 
     sprintf(filename, "%s/%s-%s.txt", get_base_directory(), CHAT_PREFIX, receiver);
-    sprintf(filename, "%s/%s.txt", get_base_directory(), CLIENT_TMP_FILE);
+    sprintf(tmp_filname, "%s/%s.txt", get_base_directory(), CLIENT_TMP_FILE);
     
     fp = fopen(filename, "r");
     fTemp = fopen(tmp_filname, "w"); 

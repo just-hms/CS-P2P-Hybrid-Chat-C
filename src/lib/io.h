@@ -21,7 +21,7 @@ char * user_get_online_list(int);
 void user_buffer_has_read(char *, char *);
 void user_buffer_message(char *, char *, char *, time_t);
 
-time_t user_get_BUFFERED_HAS_READ_PREFIX_time(char *, char *);
+time_t user_get_buffered_has_read_time(char *, char *);
 
 /* CLIENT */
 

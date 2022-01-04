@@ -260,7 +260,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         if(c == NULL)
             return NULL;
         
-        t = user_get_BUFFERED_HAS_READ_PREFIX_time(c->username, params[0]);
+        t = user_get_buffered_has_read_time(c->username, params[0]);
 
         if(t != -1){
             printf("lol\n");
