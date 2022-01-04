@@ -104,10 +104,13 @@ void refresh_chat(){
     
     chat_data * cursor;
 
+    system("clear");
+
     if(!in_group() && talking_to_count == 1){
         
         printf("{%s} | in chat with {%s}\n\n", current_username, talking_to->username);
         user_print_chat(talking_to->username);
+        help();
         return;
     }
     
@@ -117,6 +120,7 @@ void refresh_chat(){
 
         printf("{%s} | in group chat alone\n\n", current_username);
         user_print_group_chat(group_id);
+        help();
         return;
     }
 
@@ -126,6 +130,8 @@ void refresh_chat(){
         printf("%s, ", cursor->username);
     
     printf("\b\b}\n\n");
+    user_print_group_chat(group_id);
+    help();
 }
 
 void group_quit(connection_data * c){
@@ -179,7 +185,6 @@ void group_quit(connection_data * c){
 void add_to_chat(char * username, connection_data * new_member, int echo){
 
     chat_data * cursor;
-    connection_data * cursor_data;
     chat_data * new_chatter;
 
     if(strcmp(current_username, username) ==  0){
@@ -271,6 +276,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         }
         system("clear");
         clear_chatters();
+        help();
         return;
     }
 
@@ -400,6 +406,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         if(c != NULL){
             make_request(c, buf, 0);
             user_sent_message(talking_to->username, raw, get_current_time(), 1);
+            refresh_chat();
             return;
         }
 
@@ -424,6 +431,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
 
         if(strcmp(response, "offline") == 0){
             user_sent_message(talking_to->username, raw, get_current_time(), 0);
+            refresh_chat();
             return;
         }
         /* if he's online the server sent him the message and sent you the ACK with the port*/
@@ -440,6 +448,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         /* this shouldn't happen */
         if(c == NULL){
             user_sent_message(talking_to->username, raw, get_current_time(), 0);
+            refresh_chat();
             return;
         }
 
@@ -450,6 +459,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         make_request(c, buf, 0 );
 
         user_sent_message(talking_to->username, raw, get_current_time(), 1);
+        refresh_chat();
         
         return;
     }
@@ -471,6 +481,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         );
     
     user_sent_group_message(group_id, raw);
+    refresh_chat();
 }
 
 int input(char * command, char ** params, int len, char * raw){
@@ -495,11 +506,13 @@ int input(char * command, char ** params, int len, char * raw){
 
         if(logged()){
             printf("you must logout to create an account\n");
+            help();
             return 0;
         }
 
         if(len < 2 || len > 3){
             printf("error wrong format, type:\n\nsignup username password server_port\n\n");
+            help();
             return 0;
         }
 
@@ -515,29 +528,34 @@ int input(char * command, char ** params, int len, char * raw){
 
         if(response == NULL){
             printf("error connectiong to the server\n");
+            help();
             return 0;
         }
 
         if(strcmp(response, "ok") == 0){
             free(response);
             printf("congratulations {%s}, you're account has been created!\n", params[0]);
+            help();
             return 0;
         }
 
         if(strcmp(response, "not_available") == 0){
             free(response);
             printf("sorry! %s is not available\n", params[0]);
+            help();
             return 0;
         }
 
         if(strcmp(response, "too_long") == 0){
             free(response);
             printf("sorry! the username must be shorter than 50 characters\n");
+            help();
             return 0;
         }
 
         free(response);
         printf("request error\n");
+        help();
 
         return 0;
     }
@@ -548,11 +566,13 @@ int input(char * command, char ** params, int len, char * raw){
         
         if(logged()){
             printf("you must logout to login with another account\n");
+            help();
             return 0;
         }      
 
         if(len < 2 || len > 3){
             printf("error wrong format, type:\n\nin username password server_port\n\n");
+            help();
             return 0;
         }
         
@@ -575,18 +595,21 @@ int input(char * command, char ** params, int len, char * raw){
 
         if(response == NULL){
             printf("error connectiong to the server\n");
+            help();
             return 0;
         }
 
         if(strcmp(response, "wrong_user_or_password") == 0){
             free(response);
             printf("wrong username or password\n");
+            help();
             return 0;
         }
 
         if(strcmp(response, "ok") != 0){
             free(response);
             printf("request error\n");
+            help();
             return 0;
         }
 
@@ -599,6 +622,7 @@ int input(char * command, char ** params, int len, char * raw){
         user_create_folder(current_username);
 
         clear_out_time(params[0]);
+        help();
         return 0;
 
     }
@@ -645,11 +669,13 @@ int input(char * command, char ** params, int len, char * raw){
 
         if(response == NULL){
             printf("error connectiong to the server\n");
+            help();
             return 0;
         }
 
         if(strlen(response) == 0){
             printf("no message pending...\n");
+            help();
             return 0;
         }
         
@@ -663,11 +689,13 @@ int input(char * command, char ** params, int len, char * raw){
         
         if(len != 1){
             printf("error wrong format, type:\n\nshow username\n\n");
+            help();
             return 0;
         }
 
         if(strcmp(params[0], current_username) == 0){
             printf("can't show messages from you\n");
+            help();
             return 0;
         }
 
@@ -679,16 +707,19 @@ int input(char * command, char ** params, int len, char * raw){
         
         if(response == NULL){
             printf("error connectiong to the server\n");
+            help();
             return 0;
         }
 
         if(strcmp(response, ERROR_MESSAGE) == 0){
             printf("sorry the username you specified doesn't exist\n");
+            help();
             return 0;
         }
 
         if(strlen(response) == 0){
             printf("no message to show\n");
+            help();
             return 0;
         }
 
@@ -699,7 +730,7 @@ int input(char * command, char ** params, int len, char * raw){
             user_received_message(params[0], message, get_current_time());
             message = strtok(NULL, "\n");
         }
-        
+        help();
         return 0;
     }
 
@@ -709,16 +740,19 @@ int input(char * command, char ** params, int len, char * raw){
 
         if(len != 1){
             printf("error wrong format, type:\n\nchat username\n\n");
+            help();
             return 0;
         }
         
         if(strcmp(current_username, params[0]) ==  0){
             printf("error can't chat with yourself\n");
+            help();
             return 0;
         }
         
         if(!is_in_contacts(params[0])){
             printf("error %s is not in your contacts\n", params[0]);
+            help();
             return 0;
         }
         /* if server is online check if there are some buffered read messaged notification */
@@ -732,7 +766,7 @@ int input(char * command, char ** params, int len, char * raw){
         /* open the chat anyway */
 
         add_to_chat(params[0], NULL, 1);
-
+        
         return 0;
     }
 
@@ -741,12 +775,13 @@ int input(char * command, char ** params, int len, char * raw){
     if(strcmp(command, "share") == 0){
         
         printf("open a chat with someone to share a file...\n");
+        help();
         return 0;
     }
 
     
     printf("sorry %s is not a valid command\n", command);
-    
+    help();
     return 0;
 }
 
@@ -766,6 +801,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         sscanf(params[3], "%ld", &t);
 
         user_received_message(params[0], params[2], t);
+        refresh_chat();
 
         /* if you aren't talking to him write a notification */
 
@@ -786,7 +822,6 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         if(len != 2) return NULL;
 
         user_receive_group_message(group_id, params[0], params[1]);
-
         refresh_chat();
         return NULL;
     }
@@ -932,7 +967,6 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         receive_file(c, params[0]);
 
         printf("received!\n");
-        refresh_chat();
         return NULL;
     }
 
@@ -967,6 +1001,8 @@ int main(int argc, char* argv[]){
     
     current_port = atoi(argv[1]);
 
+    system("clear");
+    
     help();
 
     endpoint(

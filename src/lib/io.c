@@ -309,7 +309,6 @@ char * user_hanging(char * receiver){
     char message[100];
     char username[USERNAME_LENGTH];
     char timestamp_string[20];
-    /* TODO explain this */
     char count_string[20];
     char * line = NULL;
     char * buf;

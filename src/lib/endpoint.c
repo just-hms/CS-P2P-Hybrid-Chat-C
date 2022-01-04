@@ -54,6 +54,8 @@ connection_data * add_connection(int sd, int port){
     return new_connection;
 }
 
+/* create a connection given a port if the connection doesn't already exists */
+
 connection_data * connection(int port){
     
     int res, sd;
@@ -62,9 +64,8 @@ connection_data * connection(int port){
     
     c = find_connection_by_port(port);
     
-    if(c != NULL){
+    if(c != NULL)
         return c;
-    }
 
     sd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -75,8 +76,7 @@ connection_data * connection(int port){
 
     res = connect(sd, (struct sockaddr*)&srv_addr, sizeof(srv_addr));
     
-    if(res < 0)
-        return NULL;
+    if(res < 0) return NULL;
 
     return add_connection(sd, port);
 }
@@ -141,7 +141,6 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
     int res, listener, i, params_len; 
     fd_set read_fds;
 
-
     char * answer, * command;
     char * params[MAX_PARAMS_LEN];
     char * raw_message;
@@ -171,13 +170,15 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
         
         read_fds = master;     
         
-        /* (,,,,timeout : NULL) */
         select(fdmax + 1, &read_fds, NULL, NULL, NULL);
 
         for(i = 0; i <= fdmax; i++) {  
+            
             if(!FD_ISSET(i, &read_fds))
                 continue;
             
+            /* new connection */
+
             if(i == listener) {
                 if(verbose)
                     printf("new connection asked\n");
@@ -187,6 +188,8 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
 
             memset(buf, 0, BUF_LEN);                                
             
+            /* input received */
+
             if(i == STDIN_FILENO){
                 if(verbose)
                     printf("new input arrived\n");
@@ -201,12 +204,11 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
 
                 buf[BUF_LEN - 1] = '\0';            
 
-                /* get command */
+                /* start get command */
                 
                 raw_message = malloc(strlen(buf) * sizeof(char) + 1);
                 strcpy(raw_message, buf);
                 replace_n_with_0(raw_message);
-
 
                 command = strtok(buf, " \t\n");
                 params_len = 0;
@@ -218,7 +220,7 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
 
                 params_len--;
 
-                /* get command */
+                /* end get command */
                 
                 if(__input(command, params, params_len, raw_message)){
                     close(listener);
@@ -229,6 +231,8 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
                 free(raw_message);
                 continue;
             }
+
+            /* someone sent you a message */
 
             res = receive_message(i, buf);
 
@@ -248,8 +252,7 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
             if(verbose)
                 printf("[%d] new message received := %s\n", i, buf);
             
-            
-            /* get command */   
+            /* get command  from the message */   
 
             raw_message = malloc(strlen(buf) * sizeof(char) + 1);
             strcpy(raw_message, buf); 
@@ -266,8 +269,10 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
 
             params_len--;
 
-            /* get command */
-                        
+            /* end get command */
+            
+            /* get an answer from the message */
+
             answer = __get_request(command, params, params_len, i, raw_message);
 
             free(raw_message);
@@ -275,6 +280,7 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
             if(answer == NULL)
                 continue;
 
+            /* if the answer exists send it */
             res = send_message(i, answer); 
 
             if(res < 0){
