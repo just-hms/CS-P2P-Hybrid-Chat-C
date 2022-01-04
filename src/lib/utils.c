@@ -86,8 +86,6 @@ int send_message(int sd, char * message){
     return res;
 }
 
-/* FIX ME strlen not secure */
-
 int starts_with(char * first, char * second){
     int len_first = strlen(first);
     int len_second = strlen(second);

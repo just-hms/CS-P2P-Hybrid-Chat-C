@@ -1,6 +1,5 @@
 #include "io.h"
 
-
 time_t get_current_time(){  return time(NULL); }
 
 char * find(char * username, char * filename){
@@ -412,8 +411,6 @@ char * user_get_online_list(int timestamp_and_port){
 
     char * buf;
     char * time_string = NULL;
-
-    /* FIX ME*/
 
     char username[USERNAME_LENGTH];
 
