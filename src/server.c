@@ -1,7 +1,7 @@
-#include "./../lib/utils.h"
-#include "./../lib/endpoint.h"
+#include "./lib/utils.h"
+#include "./lib/endpoint.h"
 
-#include "./../lib/io.h"
+#include "./lib/io.h"
 
 int port;
 
@@ -34,7 +34,7 @@ int input(char * command, char ** params, int len, char * raw){
         user_list = user_get_online_list(1);
         
         if(user_list == NULL){
-            printf("it's all quiet here...\n", user_list);
+            printf("it's all quiet here...\n");
             return 0;
         }
         
@@ -69,14 +69,20 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
     char buf[BUF_LEN];
     char * response;
 
-    if(request == NULL)
-        return;
+    if(request == NULL) 
+        return NULL;
 
     if(strcmp(request, "signup") == 0){
         
         if(len != 2)
             return build_string("error");
 
+        if(strcmp(params[0], SERVER_NAME) == 0)
+            return build_string("not_available");
+
+        if(strlen(params[0]) >= 50)
+            return build_string("too_long");
+        
         res = user_add(params[0], params[1]);
 
         if(res)
@@ -102,9 +108,25 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
             }
 
             port = user_get_session(params[0]);
-            
-            if(port != -1)
-                return build_string("already_logged");    
+
+            if(port != -1){
+
+                user_end_session(
+                    params[0], 
+                    get_current_time()
+                );
+                
+                if(port != atoi(params[2]) && find_connection_by_username(params[0]) != NULL){
+                    c = connection(port);
+
+                    make_request(
+                        c,
+                        "connected_on_another_device",
+                        0
+                    );
+                }
+                
+            }
 
             connection_set_username(sd, params[0]);
 
@@ -190,7 +212,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         
         response = user_show(c->username, params[0]);
 
-        if(response == "")
+        if(strlen(response) == 0)
             return "no_message_found";
 
         c_1 = find_connection_by_username(params[0]);
@@ -238,7 +260,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         if(c == NULL)
             return NULL;
         
-        t = user_get_buffered_has_read_time(c->username, params[0]);
+        t = user_get_BUFFERED_HAS_READ_PREFIX_time(c->username, params[0]);
 
         if(t != -1){
             printf("lol\n");
@@ -273,6 +295,8 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         
         return build_string("-1");
     }
+
+    return NULL;
 }
 
 /* ./server [port] */
@@ -280,18 +304,26 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 void disconnected_if_online(int sd){
 
     connection_data * c;
+    char new_connection_username[50];
 
     c = find_connection_by_sd(sd);
-    
-    if(c == NULL)
-        return;
-    
-    if(!c->logged){
-        return;
-    }
 
+    
+    if(c == NULL) return;
+    
+    if(!c->logged) return;   
+    
+    strcpy(new_connection_username, c->username);
+
+    /* impossible username */
+    connection_set_username(sd, SERVER_NAME);
+ 
+    /* if someone else is logged with the same username don't end the session */
+
+    if(find_connection_by_username(new_connection_username) != NULL) return;
+    
     user_end_session(
-        c->username, 
+        new_connection_username, 
         get_current_time()
     );
 
@@ -301,6 +333,9 @@ int main(int argc, char* argv[]){
      
     port = (argc == 2) ? atoi(argv[1]) : 4242;
     
+    /* create fake server folder */
+
+    user_create_folder(SERVER_NAME);
     system("clear");
 
     help();
@@ -312,4 +347,6 @@ int main(int argc, char* argv[]){
         disconnected_if_online,
         1
     );
+
+    return 1;
 }

@@ -3,18 +3,28 @@
 
 char base_directory[USERNAME_LENGTH + 20];
 
-char * get_base_directory(){
-    return base_directory;
-}
+char * get_base_directory(){ return base_directory; }
 
 void user_create_folder(char * username){
     struct stat st = {0};
+    char filename[100];
+    FILE * fp;
     
     sprintf(base_directory, "%s%s", USER_PREFIX, username);
 
     if (stat(base_directory, &st) == -1) {
         mkdir(base_directory, 0755);
     }
+
+    if(strcmp(username, SERVER_NAME) == 0)
+        return;
+
+    sprintf(filename, "%s/%s", base_directory, CONTACTS_FILE);
+
+    fp = fopen(filename, "a");
+
+    fclose(fp);
+    
 }
 
 int receive_message(int i, char * buf){
@@ -37,7 +47,7 @@ int send_message(int i, char * message){
     int len, res;
     char buf[BUF_LEN];
     
-    len = strnlen(message, BUF_LEN) + 1;
+    len = strlen(message) + 1;
     
     if(len >= BUF_LEN)
         return -1;
@@ -94,5 +104,7 @@ char * replace_n_with_0(char * string){
         if(string[i] == '\0')
             return string;
     }
+
+    return string;
     
 }

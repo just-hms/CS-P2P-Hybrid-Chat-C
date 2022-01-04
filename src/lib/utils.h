@@ -5,31 +5,32 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <stdio.h>
+
 
 #define BUF_LEN 1024
 #define MAX_PARAMS_LEN 10
-#define SERVER_NAME "__server"
+#define SERVER_NAME "server"
 #define USERNAME_LENGTH 50
-
 
 #define USER_FILE "./server/user.txt"
 #define SESSION_FILE "./server/sessions.txt"
-#define SERVER_TMP_FILE "./server/tmp.txt"
+#define SERVER_TMP_FILE "./server/server-tmp.txt"
 #define BUFFERED_MESSAGE_PREFIX "./server/buffered"
-#define BUFFERED_HAS_READ "./server/has_read"
+#define BUFFERED_HAS_READ_PREFIX "./server/has_read"
 
-#define USER_PREFIX "./client/"
-#define CLIENT_TMP_FILE "./client/tmp.txt"
+#define USER_PREFIX "./"
+#define CLIENT_TMP_FILE "client-tmp.txt"
 #define OUT_PREFIX "out"
 #define CHAT_PREFIX "chat"
 #define GROUP_CHAT_PREFIX "group_chat"
+#define CONTACTS_FILE "contacts"
 
 
 char * get_base_directory();

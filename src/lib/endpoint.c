@@ -91,7 +91,7 @@ void accept_new_connection(int listener){
 
     addrlen = sizeof(cl_addr);
     
-    newfd = accept(listener, (struct sockaddr *)&cl_addr, &addrlen);
+    newfd = accept(listener, (struct sockaddr *)&cl_addr, (socklen_t *) &addrlen);
     
     add_connection(newfd, -1);
 
@@ -143,7 +143,7 @@ void close_connection(int sd, int corrupted, void(*__disconnected) (int)){
 
 void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__get_request)(char*, char **, int, int, char *), void(*__disconnected) (int), int verbose_param){
     
-    int res, listener, i, params_len, j; 
+    int res, listener, i, params_len; 
     fd_set read_fds;
 
 
@@ -230,6 +230,9 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
                     free(raw_message);
                     exit(0);
                 }   
+
+                /* second input to show the help */
+                __input(NULL, NULL, 0, NULL);
 
                 free(raw_message);
                 continue;
@@ -394,10 +397,6 @@ void close_all_connections(){
         free(to_remove);
     }
     count = 0;
-}
-
-int count_connections(){
-    return count;
 }
 
 void connection_set_username(int sd, char * username){

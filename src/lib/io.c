@@ -1,26 +1,22 @@
 #include "io.h"
 
 
-
-time_t get_current_time(){
-
-    char * buf[256];
-
-    return time(NULL);
+time_t get_current_time(){ 
+    return time(NULL); 
 }
 
-char * user_find(char * username){
+char * find(char * username, char * filename){
     FILE * fp;
     char * line = NULL;
-    int len = 0;
+    size_t len = 0;
+    int read;
 
-    int i;
-
-    fp = fopen(USER_FILE, "r");
+    fp = fopen(filename, "r");
+    
     if (fp == NULL)
         return NULL;
 
-    while (getline(&line, &len, fp) != -1) {
+    while ((read = getline(&line, &len, fp)) != EOF) {
         
         if(!starts_with(username, line))
             continue;
@@ -38,6 +34,8 @@ char * user_find(char * username){
 
     return NULL;
 }
+
+char * user_find(char * username){ return find(username, USER_FILE); }
 
 int user_exists(char * username){
     return user_find(username) != NULL;
@@ -68,7 +66,6 @@ int user_add(char * username, char * password){
 
 int user_login(char * username, char * password){
     
-    FILE * fp;
     char * user_record;
     char * buf;
     
@@ -79,7 +76,7 @@ int user_login(char * username, char * password){
 
     buf = malloc((strlen(username) + strlen(password) + 4) * sizeof(char));
         
-    sprintf(buf, "%s %s\0", username, password);
+    sprintf(buf, "%s %s", username, password);
     
     if(strcmp(user_record, buf) == 0){
         free(buf);
@@ -96,10 +93,12 @@ int user_get_session(char * username){
     
     FILE * fp;
     char * line = NULL;
-    int len = 0;
+    size_t len = 0;
     
     time_t start, end; 
-    int i, port;
+    int port;
+    int read;
+
 
     char * record;
 
@@ -109,7 +108,7 @@ int user_get_session(char * username){
 
     record = NULL;
 
-    while (getline(&line, &len, fp) != -1) {
+    while ((read = getline(&line, &len, fp)) != EOF) {
         
         if(!starts_with(username, line))
             continue;
@@ -169,7 +168,7 @@ void user_end_session(char * to_remove, time_t t){
 
     time_t start, end;
 
-    char * username[USERNAME_LENGTH];
+    char username[USERNAME_LENGTH];
 
     int port;
 
@@ -196,7 +195,7 @@ void user_end_session(char * to_remove, time_t t){
 
         fprintf(
             fTemp, 
-            "%s %d %d %ld %ld\n", 
+            "%s %d %ld %ld\n", 
             username, 
             port, 
             start, 
@@ -224,18 +223,19 @@ char * user_show(char * receiver, char * sender){
     char * line = NULL;
     char * buf;
     int count = 0;
+    int read;
     int new_file_lines_count = 0;
 
-    int len;
+    size_t len;
     
-    sprintf(filename, "%s-%s.txt\0", BUFFERED_MESSAGE_PREFIX, receiver);
+    sprintf(filename, "%s-%s.txt", BUFFERED_MESSAGE_PREFIX, receiver);
     
     fp = fopen(filename, "r");
 
     if(fp == NULL)
         return "";
     
-    while (getline(&line, &len, fp) != -1) {
+    while ((read = getline(&line, &len, fp)) != EOF) {
 
         replace_n_with_0(line);
 
@@ -255,7 +255,7 @@ char * user_show(char * receiver, char * sender){
 
     rewind(fp);
 
-    while (getline(&line, &len, fp) != -1) {
+    while ((read = getline(&line, &len, fp)) != EOF) {
 
         replace_n_with_0(line);
 
@@ -281,7 +281,7 @@ char * user_show(char * receiver, char * sender){
         
     }
 
-    strcat(buf, "\0");
+    strcat(buf, "");
 
     fclose(fp);
     fclose(fTemp);
@@ -319,22 +319,23 @@ char * user_hanging(char * receiver){
     char * buf;
     int found = 0;
     int count = 0;
+    int read;
 
-    int len;
+    size_t len;
     
     hanging_message * head = NULL;
     hanging_message * new_hanging = NULL;
     hanging_message * c = NULL;
     hanging_message * to_remove = NULL;
 
-    sprintf(filename, "%s-%s.txt\0", BUFFERED_MESSAGE_PREFIX, receiver);
+    sprintf(filename, "%s-%s.txt", BUFFERED_MESSAGE_PREFIX, receiver);
     
     fp = fopen(filename, "r");
 
     if(fp == NULL)
         return "";
     
-    while (getline(&line, &len, fp) != -1) {
+    while ((read = getline(&line, &len, fp)) != EOF) {
 
         replace_n_with_0(line);
 
@@ -397,7 +398,7 @@ char * user_hanging(char * receiver){
         free(to_remove);
     }
     
-    strcat(buf, "\0");
+    strcat(buf, "");
     return buf;
 }
 
@@ -405,11 +406,12 @@ char * user_get_online_list(int timestamp_and_port){
     
     FILE * fp;
     char * line = NULL;
-    int len = 0;
+    size_t len = 0;
     
     time_t start, end;
+    int read;
 
-    int i, port, count;
+    int port, count;
 
     char * buf;
     char * time_string = NULL;
@@ -424,7 +426,7 @@ char * user_get_online_list(int timestamp_and_port){
     if (fp == NULL)
         return NULL;
 
-    while (getline(&line, &len, fp) != -1) {
+    while ((read = getline(&line, &len, fp)) != EOF) {
         
         replace_n_with_0(line);
 
@@ -446,7 +448,7 @@ char * user_get_online_list(int timestamp_and_port){
     
     buf[0] = '\0';
 
-    while (getline(&line, &len, fp) != -1) {
+    while ((read = getline(&line, &len, fp)) != EOF) {
         replace_n_with_0(line);
 
         sscanf(line, "%s %d %ld %ld", username,  &port, &start, &end);
@@ -467,7 +469,7 @@ char * user_get_online_list(int timestamp_and_port){
         }
     }   
 
-    strcat(buf, "\0");
+    strcat(buf, "");
     
     if (line)
         free(line);
@@ -475,51 +477,49 @@ char * user_get_online_list(int timestamp_and_port){
     return buf;
 }
 
-void save_out_time(char * username){
+void save_out_time(char* username){
 	
-	FILE *fd;
+	FILE *fp;
     char filename[100];
 
-    sprintf(filename, "%s-%s.txt\0", OUT_PREFIX, username);
+    sprintf(filename, "%s-%s.txt",OUT_PREFIX, username);
     
-    fd = fopen(filename, "w");
+    fp = fopen(filename, "w");
 
-    if(fd == NULL)
-        return;
+    if(fp == NULL) return;
 
-	fprintf(fd, "%ld", get_current_time());
+	fprintf(fp, "%ld", get_current_time());
 
-    if(fd != NULL)
-	    fclose(fd); 
+    if(fp != NULL) fclose(fp); 
 }
 
-time_t get_out_time(char * username){
+time_t get_out_time(char* username){
     time_t out_time;
 
-    FILE * fd;
+    FILE * fp;
     
     char filename[100];
 
-    sprintf(filename, "%s-%s.txt\0", OUT_PREFIX, username);
+    sprintf(filename, "%s-%s.txt",OUT_PREFIX, username);
     
-    fd = fopen(filename, "r");
+    fp = fopen(filename, "r");
 
-    if(fd == NULL)
+    if(fp == NULL)
         return -1;
     
-    fscanf(fd, "%ld", &out_time);
+    fscanf(fp, "%ld", &out_time);
 
-    if(fd != NULL)
-	    fclose(fd);
+    if(fp != NULL)
+	    fclose(fp);
 
     return out_time;
 }
 
-void clear_out_time(char * username){
+void clear_out_time(char* username){
     
     char filename[100];
 
-    sprintf(filename, "%s-%s.txt\0", OUT_PREFIX, username);
+    sprintf(filename, "%s-%s.txt",OUT_PREFIX, username);
         
     remove(filename);
 }
@@ -531,18 +531,18 @@ void user_print_chat(char * sender){
     char sender_to_print [USERNAME_LENGTH];
     char message [100];
     char timestamp_string[USERNAME_LENGTH];
-    time_t timestamp;
     char * line = NULL;
-    int len = 0;
-    int i;
+    size_t len = 0;
+    int read;
 
-    sprintf(filename, "%s/%s-%s.txt\0", get_base_directory(), CHAT_PREFIX, sender);
+
+    sprintf(filename, "%s/%s-%s.txt", get_base_directory(), CHAT_PREFIX, sender);
 
     fp = fopen(filename, "r");
     if (fp == NULL)
         return;
 
-    while (getline(&line, &len, fp) != -1) {
+    while ((read = getline(&line, &len, fp)) != EOF) {
 
         sscanf(line, "%[^'|']|%[^'|']|%[^'|']", sender_to_print, message, timestamp_string);        
         printf("%s %s\n", sender_to_print, message);
@@ -557,27 +557,27 @@ void user_print_chat(char * sender){
 
 }
 
-time_t user_get_buffered_has_read_time(char * sender, char * receiver){
+time_t user_get_BUFFERED_HAS_READ_PREFIX_time(char * sender, char * receiver){
     
-    FILE *fd;
+    FILE *fp;
     char filename[200];
     time_t t;
     char time_string[20];
 
     /* to tell the sender that the receiver has read */
 
-    sprintf(filename, "%s-%s-%s.txt\0", BUFFERED_HAS_READ, sender, receiver);
+    sprintf(filename, "%s-%s-%s.txt", BUFFERED_HAS_READ_PREFIX, sender, receiver);
     
-    fd = fopen(filename, "r");
+    fp = fopen(filename, "r");
 
-    if(fd == NULL)
+    if(fp == NULL)
         return -1;
 
-    fread (time_string, 1, 20, fd);
+    fread (time_string, 1, 20, fp);
 
     sscanf(time_string, "%ld", &t);
 
-	fclose(fd);
+	fclose(fp);
 
     remove(filename);
 
@@ -586,43 +586,42 @@ time_t user_get_buffered_has_read_time(char * sender, char * receiver){
 
 void user_buffer_has_read(char * receiver, char * sender){
     
-    FILE *fd;
+    FILE *fp;
     char filename[100];
 
     /* to tell the sender that the receiver has read */
 
-    sprintf(filename, "%s-%s-%s.txt\0", BUFFERED_HAS_READ, sender, receiver);
+    sprintf(filename, "%s-%s-%s.txt", BUFFERED_HAS_READ_PREFIX, sender, receiver);
     
-    fd = fopen(filename, "w");
+    fp = fopen(filename, "w");
 
-    if(fd == NULL)
+    if(fp == NULL)
         return;
 
     /* save the name of the receiver and the time at which he's read */
 
-    fprintf(fd, "%ld",get_current_time());
+    fprintf(fp, "%ld",get_current_time());
 
-    if(fd != NULL)
-	    fclose(fd);
+    if(fp != NULL)
+	    fclose(fp);
 
 }
 
 void user_buffer_message(char * sender, char * receiver, char * message, time_t t){
     
-    FILE *fd;
+    FILE *fp;
     char filename[100];
 
-    sprintf(filename, "%s-%s.txt\0", BUFFERED_MESSAGE_PREFIX, receiver);
+    sprintf(filename, "%s-%s.txt", BUFFERED_MESSAGE_PREFIX, receiver);
     
-    fd = fopen(filename, "a");
+    fp = fopen(filename, "a");
 
-    if(fd == NULL)
-        return;
+    if(fp == NULL) return;
 
-	fprintf(fd, "%s|%s|%ld\n", sender, message, t);
+	fprintf(fp, "%s|%s|%ld\n", sender, message, t);
 
-    if(fd != NULL)
-	    fclose(fd);
+    if(fp != NULL)
+	    fclose(fp);
     
 }
 
@@ -632,7 +631,7 @@ void user_sent_message(char * receiver, char * message, time_t timestamp, int is
     
     char filename[20 + USERNAME_LENGTH + USERNAME_LENGTH + 20];
 
-    sprintf(filename, "%s/%s-%s.txt\0", get_base_directory(), CHAT_PREFIX, receiver);
+    sprintf(filename, "%s/%s-%s.txt", get_base_directory(), CHAT_PREFIX, receiver);
     
     fp = fopen(filename, "a");
     
@@ -654,7 +653,7 @@ void user_received_message(char * sender, char * message, time_t timestamp){
     
     char filename[20 + USERNAME_LENGTH + USERNAME_LENGTH + 20];
 
-    sprintf(filename, "%s/%s-%s.txt\0", get_base_directory(), CHAT_PREFIX, sender);
+    sprintf(filename, "%s/%s-%s.txt", get_base_directory(), CHAT_PREFIX, sender);
     
     fp = fopen(filename, "a");
     
@@ -672,24 +671,28 @@ void user_has_read(char * receiver, time_t until_when){
     FILE * fTemp;
     
     char * line = NULL;
-    int len;
+    size_t len;
+    int read;
+
 
     time_t t;
     
     char filename[20 + USERNAME_LENGTH + USERNAME_LENGTH + 20];
+    char tmp_filname[20 + USERNAME_LENGTH + USERNAME_LENGTH + 20];
     char message[BUF_LEN];
     char time_string[20];
     char has_read[3];
 
-    sprintf(filename, "%s/%s-%s.txt\0", get_base_directory(), CHAT_PREFIX, receiver);
+    sprintf(filename, "%s/%s-%s.txt", get_base_directory(), CHAT_PREFIX, receiver);
+    sprintf(filename, "%s/%s.txt", get_base_directory(), CLIENT_TMP_FILE);
     
     fp = fopen(filename, "r");
-    fTemp = fopen(CLIENT_TMP_FILE, "w"); 
+    fTemp = fopen(tmp_filname, "w"); 
 
     if (fp == NULL || fTemp == NULL)
         return;
 
-    while (getline(&line, &len, fp) != -1) {
+    while ((read = getline(&line, &len, fp)) != EOF) {
         
         if(!starts_with(line, "*")){
             fputs(line, fTemp);
@@ -712,34 +715,36 @@ void user_has_read(char * receiver, time_t until_when){
     fclose(fTemp);
 
     remove(filename); 
-    rename(CLIENT_TMP_FILE, filename);
+    rename(tmp_filname, filename);
 
     return;
 }
 
 int is_in_contacts(char* username){
-    
-    /* TODO */
-    
-    return 1;
+    char filename[100];
+
+    sprintf(filename, "%s/%s", get_base_directory(), CONTACTS_FILE);
+
+    return find(username, filename) != NULL;
 }
 
 void user_print_group_chat(time_t group_id){
     FILE * fp;
     char * line = NULL;
-    int len = 0;
+    size_t len = 0;
+    int read;
     
     
     char filename[USERNAME_LENGTH + 20 + 20 + 5];
 
-    sprintf(filename, "%s/%s-%ld\0", get_base_directory(), GROUP_CHAT_PREFIX, group_id);
+    sprintf(filename, "%s/%s-%ld", get_base_directory(), GROUP_CHAT_PREFIX, group_id);
     
     fp = fopen(filename, "r");
     
     if (fp == NULL)
         return;
 
-    while (getline(&line, &len, fp) != -1) {
+    while ((read = getline(&line, &len, fp)) != EOF) {
         printf("%s", line);
     }
 
@@ -756,7 +761,7 @@ void user_sent_group_message(time_t group_id, char * message){
     
     char filename[USERNAME_LENGTH + 20 + 5];
 
-    sprintf(filename, "%s/%s-%ld\0", get_base_directory(), GROUP_CHAT_PREFIX, group_id);
+    sprintf(filename, "%s/%s-%ld", get_base_directory(), GROUP_CHAT_PREFIX, group_id);
     
     fp = fopen(filename, "a");
     
@@ -774,7 +779,7 @@ void user_receive_group_message(time_t group_id, char * sender, char * message){
     
     char filename[USERNAME_LENGTH + 20 + 5];
 
-    sprintf(filename, "%s/%s-%ld\0", get_base_directory(), GROUP_CHAT_PREFIX, group_id);
+    sprintf(filename, "%s/%s-%ld", get_base_directory(), GROUP_CHAT_PREFIX, group_id);
     
     fp = fopen(filename, "a");
     
