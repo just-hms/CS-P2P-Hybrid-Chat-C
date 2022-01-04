@@ -38,6 +38,7 @@ void user_create_folder(char *);
 
 int receive_message(int, char *);
 int send_message(int, char*);
+
 int starts_with(char *, char *);
 char * build_string(char *);
 char * replace_n_with_0(char *);

@@ -27,36 +27,61 @@ void user_create_folder(char * username){
     
 }
 
-int receive_message(int i, char * buf){
+/* check me */
+
+int receive_message(int sd, char * buf){
 
     int res;
+    size_t message_length;
 
-    res = recv(i, (void*)buf, BUF_LEN, 0);
-    
-    if(res < 0){
+    res = recv(sd, (void*)&message_length, sizeof(size_t), 0);
+
+    message_length = ntohl(message_length);
+
+    if(res <= 0){    
+        buf = NULL;
+        return res;
+    }
+
+    if(message_length > BUF_LEN){
         buf = NULL;
         return -1;
     }
 
-    buf[BUF_LEN - 1] = '\0'; 
+    res = recv(sd, (void*)buf, message_length, 0);
+    
+    if(res <= 0){
+        buf = NULL;
+        return res;
+    }
+
     return res;
 }
 
-int send_message(int i, char * message){
+int send_message(int sd, char * message){
     
-    int len, res;
+    int res;
     char buf[BUF_LEN];
+
+    size_t message_length, message_length_net;
+
+    message_length = strlen(message) + 1;
+
+    message_length_net = htonl(message_length); 
     
-    len = strlen(message) + 1;
-    
-    if(len >= BUF_LEN)
+    if(message_length >= BUF_LEN)
         return -1;
+
+    res = send(sd, (void*)&message_length_net, sizeof(size_t), 0);
+
+    if(res < 0) 
+        return res;
     
     strcpy(buf, message);
 
-    buf[len] = '\0';
+    buf[message_length] = '\0';
 
-    res = send(i, (void*) buf, BUF_LEN, 0);
+    res = send(sd, (void*) buf, message_length, 0);
     
     return res;
 }
