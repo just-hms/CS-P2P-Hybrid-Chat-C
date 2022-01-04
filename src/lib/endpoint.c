@@ -4,7 +4,6 @@ int verbose;
 fd_set master;
 int fdmax;
 connection_data * head = NULL;
-int count = 0;
 
 int build_listener(int port){
 
@@ -47,13 +46,11 @@ connection_data * add_connection(int sd, int port){
         
         head = new_connection;
         head->next = NULL;
-        count++;
         return new_connection;
     }
 
     new_connection->next = head;
     head = new_connection;
-    count++;
     return new_connection;
 }
 
@@ -122,7 +119,6 @@ void close_connection(int sd, int corrupted, void(*__disconnected) (int)){
         head = head->next; 
         free(cursor);
         cursor = NULL;
-        count--;
         return;
     }
     
@@ -132,7 +128,6 @@ void close_connection(int sd, int corrupted, void(*__disconnected) (int)){
             last->next = cursor->next;
             free(cursor);
             cursor = NULL;
-            count--;
             return;
         }
 
@@ -231,9 +226,6 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
                     exit(0);
                 }   
 
-                /* second input to show the help */
-                __input(NULL, NULL, 0, NULL);
-
                 free(raw_message);
                 continue;
             }
@@ -304,6 +296,8 @@ void endpoint(int port, int(*__input)(char *, char **, int, char *), char* (*__g
     close(listener);
 }
 
+/* sends a message to the specified connection, if need_response == 1 waits for response */
+
 char * make_request(connection_data * connection, char * request, int need_response){
     
     int res;
@@ -337,6 +331,7 @@ char * make_request(connection_data * connection, char * request, int need_respo
     return NULL;
 }
 
+/* given an username finds his connection data */
 connection_data * find_connection_by_port(int port){
 
     connection_data * cursor;
@@ -354,6 +349,7 @@ connection_data * find_connection_by_port(int port){
     return NULL;
 }
 
+/* given an username finds his connection data */
 connection_data * find_connection_by_username(char * username){
 
     connection_data * cursor;
@@ -371,6 +367,7 @@ connection_data * find_connection_by_username(char * username){
     return NULL;
 }
 
+/* given a socket descriptor finds his connection data */
 connection_data * find_connection_by_sd(int sd){
 
     connection_data * cursor;
@@ -388,6 +385,7 @@ connection_data * find_connection_by_sd(int sd){
     return NULL;
 }
 
+/* close all connections */
 void close_all_connections(){
     connection_data * to_remove;
 
@@ -396,10 +394,11 @@ void close_all_connections(){
         head = head->next;
         free(to_remove);
     }
-    count = 0;
 }
 
+/* given a socket descriptor link a name to it */
 void connection_set_username(int sd, char * username){
+    
     connection_data * c;
 
     c = find_connection_by_sd(sd);
@@ -409,37 +408,35 @@ void connection_set_username(int sd, char * username){
     
     strncpy(c->username, username, USERNAME_LENGTH);
     
+    /* if he has a name he must be logged */
+
     c->logged = 1;
 }
+
 
 void send_file(connection_data * c, char * filename){
 
     char buf[BUF_LEN];
-    
-    /* FIX ME*/
-    
-    char actual_filename[100];
+    char path[USERNAME_LENGTH + 1 + FILENAME_MAX];
     
     FILE *fp;
     size_t read;
     size_t read_net;
     int res;
     int sent = 0;
-
-    int tmp = 0;
  
-    sprintf(actual_filename, "%s/%s", get_base_directory(), filename);
+    sprintf(path, "%s/%s", get_base_directory(), filename);
 
     /* check if the file exists */
     
-    fp = fopen(actual_filename, "r");
+    fp = fopen(path, "r");
 
     if(fp == NULL){
         printf("sorry the file you specified doesn't exists\n");
         return;
     }
 
-    /* send filename */
+    /* tell the user that you're sending him a file */
     
     sprintf(buf, "share|%s", filename);
     make_request(c, buf, 0);
@@ -448,8 +445,6 @@ void send_file(connection_data * c, char * filename){
 
     while (1){
 
-        tmp++;
-        
         memset(buf, 0, BUF_LEN);
         read = fread(buf, sizeof(uint8_t), BUF_LEN, fp);
         
@@ -488,21 +483,19 @@ void send_file(connection_data * c, char * filename){
 
 void receive_file(connection_data * c, char * filename){
     char buf[BUF_LEN];
-    
-    /* FIX ME*/
-    
-    char actual_filename[100];
+
+    char path[USERNAME_LENGTH + 1 + FILENAME_MAX];
     
     FILE *fp;
     size_t read;
     int res;
     int received = 0;
 
-    sprintf(actual_filename, "%s/%s", get_base_directory(), filename);
+    sprintf(path, "%s/%s", get_base_directory(), filename);
 
     /* send the actaual file */
     
-    fp = fopen(actual_filename, "w");
+    fp = fopen(path, "w");
     
     if(fp == NULL){
         printf("sorry error saving the file...\n");

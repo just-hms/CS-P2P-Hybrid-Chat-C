@@ -24,10 +24,14 @@ int input(char * command, char ** params, int len, char * raw){
         return 0;
     }
 
+    /* esc */
+
     if(strcmp(command, "esc") == 0){
         close_all_connections();
         return 1;
     }
+
+    /* list all online users */
 
     if(strcmp(command, "list") == 0){
         
@@ -43,6 +47,8 @@ int input(char * command, char ** params, int len, char * raw){
         free(user_list);
         return 0;
     }
+
+    /* help : prints help */
 
     if(strcmp(command, "help") == 0){
         help();
@@ -61,97 +67,82 @@ int input(char * command, char ** params, int len, char * raw){
 char * get_request(char * request, char ** params, int len, int sd, char * raw){
     
     connection_data * c;
-    connection_data * c_1;
+    connection_data * has_read_connection;
+
     int res, port;
     time_t t;
-
-    /* FIX ME */
     char buf[BUF_LEN];
+
     char * response;
 
     if(request == NULL) 
         return NULL;
 
+    /* signup|username|password */
+
     if(strcmp(request, "signup") == 0){
         
-        if(len != 2)
-            return build_string("error");
+        if(len != 2) return build_string(ERROR_MESSAGE);
 
-        if(strcmp(params[0], SERVER_NAME) == 0)
+        if(strcmp(params[0], SERVER_NAME) == 0) 
             return build_string("not_available");
 
-        if(strlen(params[0]) >= 50)
+        if(strlen(params[0]) >= 50) 
             return build_string("too_long");
         
         res = user_add(params[0], params[1]);
 
-        if(res)
+        if(res) 
             return build_string("ok");
 
         return build_string("not_available");
     }
 
+    /* in|username|password|port|old_logout_timestamp */
+
     if(strcmp(request, "in") == 0){
         
-        if(len != 4)
-            return build_string("error");
+        if(len != 4) return build_string(ERROR_MESSAGE);
 
-        if(user_login(params[0], params[1])){
+        if(!user_login(params[0], params[1])) 
+            return build_string("wrong_user_or_password");
+        
+        /* get the old old_logout_timestamp */    
+
+        sscanf(params[3], "%ld", &t);
+
+        if(t != -1) user_end_session(params[0], t);
+
+        port = user_get_session(params[0]);
+
+        /* check if there's someone on the same port */
+
+        if(port == -1){
+
+            /* if yes close the connection with him */
             
-            sscanf(params[3], "%ld", &t);
+            user_end_session(params[0], get_current_time());
 
-            if(t != -1){
-                user_end_session(
-                    params[0], 
-                    t
-                );
-            }
-
-            port = user_get_session(params[0]);
-
-            if(port != -1){
-
-                user_end_session(
-                    params[0], 
-                    get_current_time()
-                );
-                
-                if(port != atoi(params[2]) && find_connection_by_username(params[0]) != NULL){
-                    c = connection(port);
-
-                    make_request(
-                        c,
-                        "connected_on_another_device",
-                        0
-                    );
-                }
-                
-            }
-
-            connection_set_username(sd, params[0]);
-
-            user_start_session(
-                params[0],          /* username */
-                atoi(params[2])     /* user_port */
-            );  
-
-            return build_string("ok");
+            c = find_connection_by_username(params[0]);
+            make_request(c, "connected_on_another_device", 0);
         }
 
-        return build_string("wrong_user_or_password");
+        connection_set_username(sd, params[0]);
+        user_start_session(params[0], atoi(params[2]));  
+        return build_string("ok");
+
     }
 
-    /* message|from|to|message|timestamp??? */
+    /* message|from|to|message|timestamp */
 
     if(strcmp(request, "message") == 0){
         
-        if(len != 4)
-            return build_string("error");
+        if(len != 4) return build_string(ERROR_MESSAGE);
         
         /* if he doesn't exist error */
 
         if(!user_exists(params[1]))
-            return build_string("error");
+            return build_string(ERROR_MESSAGE);
         
         c = find_connection_by_username(params[1]);
         
@@ -177,57 +168,63 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
             0
         );
 
-        /* send ACK */
+        /* send ACK with the port to sender */
         
         port = user_get_session(c->username);
         sprintf(buf, "%d", port);
         return build_string(buf);
     }
 
+    /* hanging */
+
     if(strcmp(request, "hanging") == 0){
         
-        if(len != 0)
-            return build_string("error");
+        if(len != 0) return build_string(ERROR_MESSAGE);
         
         c = find_connection_by_sd(sd);
 
-        if(c == NULL || !c->logged)
-            return build_string("error");
+        if(c == NULL || !c->logged) return build_string(ERROR_MESSAGE);
         
         return user_hanging(c->username);
     }
 
+    /* show|username */
+
     if(strcmp(request, "show") == 0){
         
-        if(len != 1)
-            return build_string("error");
+        if(len != 1) return build_string(ERROR_MESSAGE);
         
         if(!user_exists(params[0]))
-            return "error";
+            return ERROR_MESSAGE;
         
         c = find_connection_by_sd(sd);
         
         if(c == NULL || !c->logged)
-            return build_string("error");
+            return build_string(ERROR_MESSAGE);
         
         response = user_show(c->username, params[0]);
 
         if(strlen(response) == 0)
-            return "no_message_found";
+            return build_string("");
+        
+        /* try to tell the sender that the receiver received the messages */
+        
+        has_read_connection = find_connection_by_username(params[0]);
 
-        c_1 = find_connection_by_username(params[0]);
+        /* if he's offline buffer */
 
-        if(c_1 == NULL){
+        if(has_read_connection == NULL){
             
             user_buffer_has_read(c->username, params[0]);
-            
             return response;
         }
         
+        /* otherwise send him the message has_read with the timestamp */
+
         sprintf(buf, "has_read|%s|%ld", c->username, get_current_time());
 
         make_request(
-            c_1,
+            has_read_connection,
             buf,
             0
         );
@@ -235,11 +232,11 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         return response;   
     }
     
+    /* list */
+
     if(strcmp(request, "list") == 0){
         
         response = user_get_online_list(0);
-        
-        /* should never happen cause he's online */
         
         if(response == NULL)
             return build_string("it's all quiet here...");
@@ -247,86 +244,81 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         return response;
     }
 
+    /* get_has_read|receiver */
+
     if(strcmp(request, "get_has_read") == 0){
         
-        if(len != 1)
-            return NULL;
+        if(len != 1) return NULL;
         
-        c = find_connection_by_sd(sd);
-
         if(!user_exists(params[0]))
             return NULL;
+
+        c = find_connection_by_sd(sd);
         
         if(c == NULL)
             return NULL;
         
+        /* find out if the receiver has read the messages you sent him */
+
         t = user_get_buffered_has_read_time(c->username, params[0]);
 
         if(t != -1){
-            printf("lol\n");
-
             sprintf(buf, "has_read|%s|%ld", params[0], t);
-            
-            make_request(
-                c,
-                buf,
-                0
-            );
+            make_request(c, buf, 0);
         }
 
         return NULL;
     }
 
+    /* get_user_port|username */
+
     if(strcmp(request, "get_user_port") == 0){
         
-        if(len != 1)
-            return build_string("error");
+        if(len != 1) return build_string(ERROR_MESSAGE);
         
         if(!user_exists(params[0]))
-            return build_string("error");
+            return build_string(ERROR_MESSAGE);
         
         c = find_connection_by_username(params[0]);
         
-        if(c != NULL){
-            port = user_get_session(c->username);
-            sprintf(buf, "%d", port);
-            return build_string(buf);
-        }
-        
-        return build_string("-1");
+        if(c == NULL) return build_string("-1");
+
+        /* if he's online send the port in response */
+
+        port = user_get_session(c->username);
+
+        sprintf(buf, "%d", port);
+        return build_string(buf);        
     }
 
     return NULL;
 }
 
-/* ./server [port] */
-
 void disconnected_if_online(int sd){
 
     connection_data * c;
-    char new_connection_username[50];
+    char disconnected_username[50];
 
     c = find_connection_by_sd(sd);
 
-    
     if(c == NULL) return;
     
     if(!c->logged) return;   
     
-    strcpy(new_connection_username, c->username);
+    strcpy(disconnected_username, c->username);
 
-    /* impossible username */
+    /* set fake username to disconnected connection */
+
     connection_set_username(sd, SERVER_NAME);
  
     /* if someone else is logged with the same username don't end the session */
 
-    if(find_connection_by_username(new_connection_username) != NULL) return;
-    
-    user_end_session(
-        new_connection_username, 
-        get_current_time()
-    );
+    if(find_connection_by_username(disconnected_username) != NULL) 
+        return;
 
+    /* if not just end the session */
+    
+    user_end_session(disconnected_username, get_current_time());
 }
 
 int main(int argc, char* argv[]){

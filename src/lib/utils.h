@@ -18,6 +18,7 @@
 #define MAX_PARAMS_LEN 10
 #define SERVER_NAME "server"
 #define USERNAME_LENGTH 50
+#define ERROR_MESSAGE "error_message_ewfkbbewb"
 
 #define USER_FILE "./server/user.txt"
 #define SESSION_FILE "./server/sessions.txt"
