@@ -113,19 +113,10 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
         if(t != -1) user_end_session(params[0], t);
 
-        port = user_get_session(params[0]);
-
-        /* check if there's someone on the same port */
-
-        if(port == -1){
-
-            /* if yes close the connection with him */
-            
-            user_end_session(params[0], get_current_time());
-
-            c = find_connection_by_username(params[0]);
-            make_request(c, "connected_on_another_device", 0);
-        }
+        /* if someone is already connected with the same username disconnect him  */
+        user_end_session(params[0], get_current_time());
+        c = find_connection_by_username(params[0]);
+        make_request(c, "connected_on_another_device", 0);
 
         connection_set_username(sd, params[0]);
         user_start_session(params[0], atoi(params[2]));  
@@ -195,7 +186,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         if(len != 1) return build_string(ERROR_MESSAGE);
         
         if(!user_exists(params[0]))
-            return ERROR_MESSAGE;
+            return build_string(ERROR_MESSAGE);
         
         c = find_connection_by_sd(sd);
         
@@ -223,11 +214,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
         sprintf(buf, "has_read|%s|%ld", c->username, get_current_time());
 
-        make_request(
-            has_read_connection,
-            buf,
-            0
-        );
+        make_request(has_read_connection, buf, 0);
 
         return response;   
     }
@@ -291,6 +278,15 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         return build_string(buf);        
     }
 
+    if(strcmp(request, "reconnect") == 0){
+
+        if(len != 2)
+            return NULL;
+
+        c = find_connection_by_sd(sd);
+        connection_set_username(sd, params[0]);
+        c->port = atoi(params[1]);
+    }
     return NULL;
 }
 

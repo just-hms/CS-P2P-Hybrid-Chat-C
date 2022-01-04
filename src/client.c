@@ -13,6 +13,7 @@ int server_port = 4242;                 /* server port*/
 
 int current_port;                       /* your port */
 char * current_username = NULL;         /* your current username */
+int server_offline = 1;
 
 int talking_to_count = 0;
 chat_data * talking_to = NULL;
@@ -22,6 +23,17 @@ char buf[BUF_LEN];
 int in_group() { return group_id != -1; }
 int in_chat() { return in_group() || talking_to_count > 0; }
 int logged() { return current_username != NULL; }
+
+void reconnect(connection_data * c){
+    char reconnect_buf[BUF_LEN];
+
+    sprintf(reconnect_buf, "reconnect|%s|%d", current_username, current_port);
+    
+    make_request(c, reconnect_buf, 0);
+    connection_set_username(c->sd, SERVER_NAME);
+
+    server_offline = 0;
+}
 
 int already_talking_to(char * username){
 
@@ -53,7 +65,6 @@ void commands_help(){
     printf("\nhey {%s}\n", current_username);
     printf("\nchat username --> to chat with someone from your contacts\n");
     printf("hanging --> to see all your pending messages\n");
-    printf("show username --> to see the pending messages from username\n");
     printf("show username --> to see the pending messages from username\n");
     printf("out --> logout and close the application\n\n");
 
@@ -315,6 +326,10 @@ void handle_chat(char * command, char ** params, int len, char * raw){
 
         c = connection(server_port);
 
+        if(c != NULL && server_offline){
+            reconnect(c);
+        }
+
         response = make_request(c,"list", 1);
         
         if(response == NULL){
@@ -355,6 +370,10 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         sprintf(buf, "get_user_port|%s", params[0]);
 
         c = connection(server_port);
+
+        if(c != NULL && server_offline){
+            reconnect(c);
+        }
         
         response = make_request(c, buf, 1);
 
@@ -417,15 +436,22 @@ void handle_chat(char * command, char ** params, int len, char * raw){
 
         c = connection(server_port);
 
+        if(c != NULL && server_offline){
+            reconnect(c);
+        }
+
         response = make_request(c, buf, 1);
 
         if(response == NULL){
-            printf("sorry both the server and {%s} are offline...", talking_to->username);
+            refresh_chat();
+            printf("sorry both the server and {%s} are offline...\n", talking_to->username);
             return;
         }
 
+
         if(strcmp(response, ERROR_MESSAGE) == 0){
-            printf("error comunicating with the server");
+            refresh_chat();
+            printf("error comunicating with the server\n");
             return;
         }
 
@@ -614,10 +640,14 @@ int input(char * command, char ** params, int len, char * raw){
         }
 
         /* set current username */
+
         current_username = malloc(sizeof(params[0]) + sizeof(char));
         strcpy(current_username, params[0]);
 
+        server_offline = 0;
         printf("congratulations {%s}, you're logged in!\n", params[0]);
+
+        connection_set_username(c->sd, SERVER_NAME);
 
         user_create_folder(current_username);
 
@@ -640,6 +670,10 @@ int input(char * command, char ** params, int len, char * raw){
 
         c = connection(server_port);
 
+        if(c != NULL && server_offline){
+            reconnect(c);
+        }
+
         if(c == NULL){
             printf("saving out time...\n");
             save_out_time(current_username);
@@ -651,6 +685,7 @@ int input(char * command, char ** params, int len, char * raw){
     
     if(!logged()){
         printf("you must do the login before doing any action beside login, signup or out\n");
+        help();
         return 0;
     }
 
@@ -664,6 +699,10 @@ int input(char * command, char ** params, int len, char * raw){
         }
 
         c = connection(server_port);
+
+        if(c != NULL && server_offline){
+            reconnect(c);
+        }
         
         response = make_request(c, "hanging", 1);
 
@@ -680,6 +719,7 @@ int input(char * command, char ** params, int len, char * raw){
         }
         
         printf("%s\n", response);
+        help();
         return 0;
     }
 
@@ -700,6 +740,10 @@ int input(char * command, char ** params, int len, char * raw){
         }
 
         c = connection(server_port);
+
+        if(c != NULL && server_offline){
+            reconnect(c);
+        }
         
         sprintf(buf, "show|%s", params[0]);
         
@@ -758,6 +802,10 @@ int input(char * command, char ** params, int len, char * raw){
         /* if server is online check if there are some buffered read messaged notification */
 
         c = connection(server_port);
+
+        if(c != NULL && server_offline){
+            reconnect(c);
+        }
         
         sprintf(buf, "get_has_read|%s", params[0]);
 
@@ -801,8 +849,6 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         sscanf(params[3], "%ld", &t);
 
         user_received_message(params[0], params[2], t);
-        refresh_chat();
-
         /* if you aren't talking to him write a notification */
 
         if(talking_to_count == 0 || strcmp(params[0], talking_to->username) != 0){
@@ -988,6 +1034,19 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
 void disconnected(int sd){
 
+    connection_data * c;
+
+    c = find_connection_by_sd(sd);
+
+    if(c == NULL)
+        return;
+
+    if(strcmp(c->username, SERVER_NAME) == 0){
+        printf("the server disconnected..\n");
+        server_offline = 1;
+        return;
+    }
+    
     if(in_group()) 
         group_quit(find_connection_by_sd(sd));
 }
