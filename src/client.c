@@ -333,7 +333,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         response = make_request(c,"list", 1);
         
         if(response == NULL){
-            printf("error connectiong to the server\n");
+            printf("error connecting to the server\n");
             return;
         }
 
@@ -378,7 +378,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         response = make_request(c, buf, 1);
 
         if(response == NULL){
-            printf("error connectiong to the server\n");
+            printf("error connecting to the server\n");
             return;
         }
 
@@ -553,7 +553,7 @@ int input(char * command, char ** params, int len, char * raw){
         response = make_request(c, buf, 1);
 
         if(response == NULL){
-            printf("error connectiong to the server\n");
+            printf("error connecting to the server\n");
             help();
             return 0;
         }
@@ -620,7 +620,7 @@ int input(char * command, char ** params, int len, char * raw){
         response = make_request(c, buf, 1);
 
         if(response == NULL){
-            printf("error connectiong to the server\n");
+            printf("error connecting to the server\n");
             help();
             return 0;
         }
@@ -707,7 +707,7 @@ int input(char * command, char ** params, int len, char * raw){
         response = make_request(c, "hanging", 1);
 
         if(response == NULL){
-            printf("error connectiong to the server\n");
+            printf("error connecting to the server\n");
             help();
             return 0;
         }
@@ -750,7 +750,7 @@ int input(char * command, char ** params, int len, char * raw){
         response = make_request(c, buf, 1);
         
         if(response == NULL){
-            printf("error connectiong to the server\n");
+            printf("error connecting to the server\n");
             help();
             return 0;
         }
