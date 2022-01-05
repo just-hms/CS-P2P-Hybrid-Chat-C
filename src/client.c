@@ -116,7 +116,7 @@ void refresh_chat(){
     
     chat_data * cursor;
 
-    /* system("clear"); */
+    system("clear");
 
     if(!in_group() && talking_to_count == 1){
         
@@ -535,7 +535,7 @@ int input(char * command, char ** params, int len, char * raw){
         return 0;
     }
 
-    /* system("clear"); */
+    system("clear");
     
     /* signup username password [port] */
 
@@ -1062,7 +1062,7 @@ int main(int argc, char* argv[]){
         input, 
         get_request, 
         disconnected,
-        1
+        0
     );
 
     return 1;
