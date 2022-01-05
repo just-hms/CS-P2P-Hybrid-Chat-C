@@ -35,7 +35,7 @@ int input(char * command, char ** params, int len, char * raw){
 
     if(strcmp(command, "list") == 0){
         
-        user_list = user_get_online_list(1);
+        user_list = connection_get_list(1);
         
         if(user_list == NULL){
             printf("it's all quiet here...\n");
@@ -69,7 +69,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
     connection_data * c;
     connection_data * has_read_connection;
 
-    int res, port;
+    int res;
     time_t t;
     char buf[BUF_LEN];
 
@@ -113,12 +113,18 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
         if(t != -1) user_end_session(params[0], t);
 
+
         /* if someone is already connected with the same username disconnect him  */
         user_end_session(params[0], get_current_time());
         c = find_connection_by_username(params[0]);
         make_request(c, "connected_on_another_device", 0);
 
-        connection_set_username(sd, params[0]);
+        /* set data in connections */
+        c = find_connection_by_sd(sd);
+        connection_set_username(c->sd, params[0]);
+        c->port = atoi(params[2]);
+        c->timestamp = get_current_time();
+
         user_start_session(params[0], atoi(params[2]));  
         return build_string("ok");
 
@@ -153,16 +159,10 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
         printf("forwarding := %s\n", raw);
 
-        make_request(
-            c,
-            raw,
-            0
-        );
+        make_request(c, raw, 0);
 
         /* send ACK with the port to sender */
-        
-        port = user_get_session(c->username);
-        sprintf(buf, "%d", port);
+        sprintf(buf, "%d", c->port);
         return build_string(buf);
     }
 
@@ -223,7 +223,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
     if(strcmp(request, "list") == 0){
         
-        response = user_get_online_list(0);
+        response = connection_get_list(0);
         
         if(response == NULL)
             return build_string("it's all quiet here...");
@@ -272,9 +272,7 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
         /* if he's online send the port in response */
 
-        port = user_get_session(c->username);
-
-        sprintf(buf, "%d", port);
+        sprintf(buf, "%d", c->port);
         return build_string(buf);        
     }
 
@@ -286,7 +284,9 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         c = find_connection_by_sd(sd);
         connection_set_username(sd, params[0]);
         c->port = atoi(params[1]);
+        c->timestamp = get_current_time();
     }
+
     return NULL;
 }
 

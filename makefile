@@ -9,3 +9,5 @@ build_server: 	$(SOURCES)
 
 build_client: 	$(SOURCES)
 				$(CC) -o ./dev ./src/client.c $(SOURCES) $(CFLAGS)
+
+

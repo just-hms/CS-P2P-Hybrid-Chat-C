@@ -795,7 +795,7 @@ int input(char * command, char ** params, int len, char * raw){
         }
         
         if(!is_in_contacts(params[0])){
-            printf("error %s is not in your contacts\n", params[0]);
+            printf("error {%s} is not in your contacts\n", params[0]);
             help();
             return 0;
         }
