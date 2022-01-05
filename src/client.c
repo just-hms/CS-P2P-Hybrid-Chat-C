@@ -92,7 +92,8 @@ void clear_chatters(){
         for (cursor = talking_to; cursor; cursor = cursor->next){
 
             c = find_connection_by_username(cursor->username);
-            make_request(c, "group_quit", 0);    
+            sprintf(buf, "group_quit|%ld", group_id);
+            make_request(c, buf, 0);    
         }
     }
     
@@ -115,7 +116,7 @@ void refresh_chat(){
     
     chat_data * cursor;
 
-    system("clear");
+    /* system("clear"); */
 
     if(!in_group() && talking_to_count == 1){
         
@@ -145,7 +146,7 @@ void refresh_chat(){
     help();
 }
 
-void group_quit(connection_data * c){
+void group_quit(connection_data * c, time_t left_group_id){
     chat_data * cursor;
     chat_data * last;
 
@@ -153,6 +154,14 @@ void group_quit(connection_data * c){
         refresh_chat();
         return;
     }
+
+    /* 
+        -1 left all groups cause connection went down, 
+        otherwise left_group_id must be equal to current group_id
+    */
+
+    if(left_group_id != -1 && left_group_id != group_id)
+        return;
 
     cursor = talking_to;
 
@@ -214,7 +223,7 @@ void add_to_chat(char * username, connection_data * new_member, int echo){
         /* if you add someone for the first time but you are in a group tell him that he's been added to one */
 
         if(in_group() && echo){
-            sprintf(buf, "group_member|%ld|%s|%d", group_id, current_username, current_port);
+            sprintf(buf, "im_a_group_member|%ld|%s|%d", group_id, current_username, current_port);
             
             make_request(
                 find_connection_by_username(talking_to->username), 
@@ -226,14 +235,13 @@ void add_to_chat(char * username, connection_data * new_member, int echo){
         return;
     }
 
-    if(!in_group()){
-
-        if(find_connection_by_username(talking_to->username) == NULL){
-            printf("sorry to start a group chat make sure that who you're talking to is online...\n");
-            return;
-        }
-
-        group_id = get_current_time();
+    if(
+        !in_group() && 
+        talking_to_count == 1 && 
+        find_connection_by_username(talking_to->username) == NULL
+    ){
+        printf("sorry to start a group chat make sure that who you're talking to is online...\n");
+        return;
     }
 
     talking_to_count++;
@@ -245,11 +253,14 @@ void add_to_chat(char * username, connection_data * new_member, int echo){
         return;
     }
 
+    if(!in_group())
+        group_id = get_current_time();
+
     /* tell everyone in the group that you added new_member */
 
     for (cursor = talking_to; cursor; cursor = cursor->next){
 
-        sprintf(buf, "group_add|%ld|%s|%d", group_id, new_member->username, new_member->port);
+        sprintf(buf, "group_member_added|%ld|%s|%d", group_id, new_member->username, new_member->port);
         
         make_request(
             find_connection_by_username(cursor->username), 
@@ -260,7 +271,7 @@ void add_to_chat(char * username, connection_data * new_member, int echo){
 
     /* tell the new member who you are and your data */
 
-    sprintf(buf, "group_member|%ld|%s|%d", group_id, current_username, current_port);
+    sprintf(buf, "im_a_group_member|%ld|%s|%d", group_id, current_username, current_port);
 
     make_request(new_member, buf, 0);
     
@@ -333,7 +344,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         response = make_request(c,"list", 1);
         
         if(response == NULL){
-            printf("error connecting to the server\n");
+            printf("error connecting to the server at port: %d\n", server_port);
             return;
         }
 
@@ -378,7 +389,7 @@ void handle_chat(char * command, char ** params, int len, char * raw){
         response = make_request(c, buf, 1);
 
         if(response == NULL){
-            printf("error connecting to the server\n");
+            printf("error connecting to the server at port: %d\n", server_port);
             return;
         }
 
@@ -524,7 +535,7 @@ int input(char * command, char ** params, int len, char * raw){
         return 0;
     }
 
-    system("clear");
+    /* system("clear"); */
     
     /* signup username password [port] */
 
@@ -553,7 +564,7 @@ int input(char * command, char ** params, int len, char * raw){
         response = make_request(c, buf, 1);
 
         if(response == NULL){
-            printf("error connecting to the server\n");
+            printf("error connecting to the server at port: %d\n", server_port);
             help();
             return 0;
         }
@@ -620,7 +631,7 @@ int input(char * command, char ** params, int len, char * raw){
         response = make_request(c, buf, 1);
 
         if(response == NULL){
-            printf("error connecting to the server\n");
+            printf("error connecting to the server at port: %d\n", server_port);
             help();
             return 0;
         }
@@ -707,7 +718,7 @@ int input(char * command, char ** params, int len, char * raw){
         response = make_request(c, "hanging", 1);
 
         if(response == NULL){
-            printf("error connecting to the server\n");
+            printf("error connecting to the server at port: %d\n", server_port);
             help();
             return 0;
         }
@@ -750,7 +761,7 @@ int input(char * command, char ** params, int len, char * raw){
         response = make_request(c, buf, 1);
         
         if(response == NULL){
-            printf("error connecting to the server\n");
+            printf("error connecting to the server at port: %d\n", server_port);
             help();
             return 0;
         }
@@ -837,7 +848,6 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
     
     time_t t;
     connection_data * c;
-    int rejoin = 0;
 
     if(request == NULL)
         return NULL;
@@ -901,9 +911,9 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
         return NULL;
     }
     
-    /* group_add|groud_id|new_member_username|new_meber_port */
+    /* group_member_added|groud_id|new_member_username|new_meber_port */
 
-    if(strcmp(request, "group_add") == 0){
+    if(strcmp(request, "group_member_added") == 0){
                 
         if(len != 3) return NULL;
 
@@ -913,31 +923,12 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
         if(!in_group() || group_id != t){
 
-            /* if you were in another group */    
-        
-            rejoin = in_group() && group_id != t;
-
-            /* close the chat */
-
             clear_chatters();
-
-            /* set new group_id */
-
             group_id = t;
 
-            /* add the group creator to the chat */
-            
+            /* add the group creator to the chat */            
             c = find_connection_by_sd(sd);
             add_to_chat(c->username, c, 0);
-
-            /* if you left the chat with him cause you were in another group rejoin it */
-
-            if(rejoin){
-                
-                sprintf(buf, "group_member|%ld|%s|%d", group_id, current_username, current_port);
-                printf("to rejoin := %s\n", buf);
-                make_request(c, buf, 0);
-            }
         }
         
         /* check if you have a connection with the new_mermber otherwise create it */
@@ -955,13 +946,13 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
         /* tell the new member who you are */
 
-        sprintf(buf, "group_member|%ld|%s|%d", group_id, current_username, current_port);
+        sprintf(buf, "im_a_group_member|%ld|%s|%d", group_id, current_username, current_port);
         make_request(c, buf, 0);
         return NULL;
     
     }
 
-    if(strcmp(request, "group_member") == 0){
+    if(strcmp(request, "im_a_group_member") == 0){
         if(len != 3) return NULL;
 
         sscanf(params[0], "%ld", &t);
@@ -991,13 +982,15 @@ char * get_request(char * request, char ** params, int len, int sd, char * raw){
 
 
     if(strcmp(request, "group_quit") == 0){
-        if(len != 0)
+        if(len != 1)
             return NULL;
 
         if(!in_group())
             return NULL;
 
-        group_quit(find_connection_by_sd(sd));
+        printf("current_group := %ld\n", group_id);
+        sscanf(params[0], "%ld", &t);
+        group_quit(find_connection_by_sd(sd), t);
 
         return NULL;
     }
@@ -1048,7 +1041,7 @@ void disconnected(int sd){
     }
     
     if(in_group()) 
-        group_quit(find_connection_by_sd(sd));
+        group_quit(find_connection_by_sd(sd), -1);
 }
 
 int main(int argc, char* argv[]){
@@ -1069,7 +1062,7 @@ int main(int argc, char* argv[]){
         input, 
         get_request, 
         disconnected,
-        0
+        1
     );
 
     return 1;
