@@ -1,3 +1,1 @@
-# progettoreti
-
-progetto di reti informatiche 2020
+# progetto reti informatiche 2021-2022

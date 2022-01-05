@@ -1,14 +1,12 @@
 #include "utils.h"
 
 struct connection_data{
-
     int sd;
     int port;
     char username[USERNAME_LENGTH];
     time_t timestamp;
     int logged;
     struct connection_data * next;
-
 } typedef connection_data;
 
 connection_data * connection(int);
