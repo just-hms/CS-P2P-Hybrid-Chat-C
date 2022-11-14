@@ -1,5 +1,5 @@
 
-# Decentralized chat app
+#  CS-P2P Hybrid Chat built using C sockets
 
 Project assignment of "Reti Informatiche", an exam in the bachelor degree in Computer Engineering Pisa, year 2021-2022
 
